@@ -21,7 +21,7 @@ export const Route = createFileRoute("/timeline")({
       },
     ],
   }),
-  component: TimelinePage;
+  component: TimelinePage,
 });
 
 const META: Record<LogKind, { label: string; icon: typeof Baby; tone: string }> = {
