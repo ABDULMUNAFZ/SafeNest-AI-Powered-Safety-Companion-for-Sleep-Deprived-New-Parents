@@ -35,14 +35,18 @@ const app = isFirebaseConfigured
   ? (getApps().length ? getApp() : initializeApp(firebaseConfig))
   : null;
 
-// Export Auth services with robust fallback persistence (excluding IndexedDB to prevent browser lockouts)
-export const auth = app
-  ? (getApps().length 
-      ? getAuth(app)
-      : initializeAuth(app, {
-          persistence: [browserLocalPersistence, browserSessionPersistence]
-        })
-    )
-  : null;
+// Export Auth services with robust fallback persistence (excluding IndexedDB)
+let initializedAuth = null;
+if (app) {
+  try {
+    initializedAuth = initializeAuth(app, {
+      persistence: [browserLocalPersistence, browserSessionPersistence]
+    });
+  } catch (e) {
+    // If already initialized, get the existing instance
+    initializedAuth = getAuth(app);
+  }
+}
 
+export const auth = initializedAuth;
 export const googleProvider = app ? new GoogleAuthProvider() : null;
