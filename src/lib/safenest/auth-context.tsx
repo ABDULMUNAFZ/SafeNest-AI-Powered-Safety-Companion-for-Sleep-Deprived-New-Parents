@@ -7,9 +7,16 @@ import {
   loginWithGoogle, 
   logoutUser,
   onAuthStateChanged,
-  type User 
+  type User,
+  db
 } from "./firebase";
-import { supabase, isSupabaseConfigured } from "./supabase";
+import { 
+  doc, 
+  getDoc, 
+  setDoc, 
+  writeBatch,
+  collection 
+} from "firebase/firestore";
 
 export type AuthUser = {
   uid: string;
@@ -101,17 +108,14 @@ export const SafeNestAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [isDemoMode]);
 
-  // Check onboarding status in Supabase
+  // Check onboarding status in Firestore
   const checkOnboardingStatus = async (uid: string) => {
-    if (!supabase) return;
+    if (!db) return;
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("id", uid)
-        .single();
+      const docRef = doc(db, "profiles", uid);
+      const docSnap = await getDoc(docRef);
       
-      if (data && !error) {
+      if (docSnap.exists()) {
         setOnboardingComplete(true);
       } else {
         setOnboardingComplete(false);
@@ -197,23 +201,21 @@ export const SafeNestAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   ) => {
     if (!user) return;
 
-    if (!isDemoMode && supabase) {
+    if (!isDemoMode && db) {
       try {
-        // 1. Save Parent Profile in Supabase
-        const { error: profileError } = await supabase.from("profiles").upsert({
+        // 1. Save Parent Profile in Firestore
+        await setDoc(doc(db, "profiles", user.uid), {
           id: user.uid,
           parent_name: parentData.parentName,
           partner_name: parentData.partnerName,
           partner_phone: parentData.partnerPhone,
           emergency_number: parentData.emergencyNumber,
           share_with_partner: parentData.shareWithPartner,
-          updated_at: new Date(),
+          updated_at: new Date().toISOString(),
         });
 
-        if (profileError) throw profileError;
-
-        // 2. Save Baby Profile in Supabase
-        const { data: babyRecord, error: babyError } = await supabase.from("babies").insert({
+        // 2. Save Baby Profile in Firestore
+        await setDoc(doc(db, "babies", user.uid), {
           parent_id: user.uid,
           baby_name: babyData.babyName,
           birth_date: babyData.birthDate,
@@ -227,12 +229,10 @@ export const SafeNestAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
           hospital_name: babyData.hospitalName,
           insurance_name: babyData.insuranceName,
           insurance_policy: babyData.insurancePolicy,
-        }).select().single();
-
-        if (babyError) throw babyError;
+        });
 
         // 3. Seed historical logs (Last 3 days of records)
-        await seedSupabaseLogs(user.uid, babyRecord.id, babyData.babyName);
+        await seedFirestoreLogs(user.uid, babyData.babyName);
 
         setOnboardingComplete(true);
       } catch (err) {
@@ -257,55 +257,66 @@ export const SafeNestAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
-  // Seeding engine for Supabase remote database
-  const seedSupabaseLogs = async (uid: string, babyId: string, babyName: string) => {
-    if (!supabase) return;
-    const makeTime = (hoursAgo: number) => new Date(Date.now() - hoursAgo * 3600000).toISOString();
+  // Seeding engine for Firestore remote database
+  const seedFirestoreLogs = async (uid: string, babyName: string) => {
+    if (!db) return;
+    const makeTime = (hoursAgo: number) => Date.now() - hoursAgo * 3600000;
+    const batch = writeBatch(db);
 
     // 1. Care Logs (Diapers, Feedings, Sleep)
     const careLogs = [
-      { parent_id: uid, kind: "fed", at: makeTime(2), note: "120 ml formula feed" },
-      { parent_id: uid, kind: "diaper", at: makeTime(3.5), note: "Wet diaper, changed" },
-      { parent_id: uid, kind: "slept", at: makeTime(5), note: "Slept for 1 hour in cot" },
-      { parent_id: uid, kind: "fed", at: makeTime(6.5), note: "Breastfeeding, 15 mins" },
-      { parent_id: uid, kind: "diaper", at: makeTime(8.5), note: "Wet and dirty diaper" },
-      { parent_id: uid, kind: "slept", at: makeTime(10), note: "Morning nap: 1.5 hours" },
-      { parent_id: uid, kind: "fed", at: makeTime(12), note: "110 ml formula feed" },
-      { parent_id: uid, kind: "water", at: makeTime(14), note: "Parent water check: 250ml" },
-      { parent_id: uid, kind: "fed", at: makeTime(16), note: "Breastfeeding, 12 mins" },
-      { parent_id: uid, kind: "slept", at: makeTime(22), note: "Overnight sleep stretch" },
-      { parent_id: uid, kind: "fed", at: makeTime(28), note: "120 ml formula feed" },
-      { parent_id: uid, kind: "diaper", at: makeTime(32), note: "Wet diaper" },
-      { parent_id: uid, kind: "slept", at: makeTime(36), note: "Nap time: 45 mins" },
-      { parent_id: uid, kind: "fed", at: makeTime(52), note: "100 ml formula feed" },
+      { id: "c_l1", parent_id: uid, kind: "fed", at: makeTime(2), note: "120 ml formula feed" },
+      { id: "c_l2", parent_id: uid, kind: "diaper", at: makeTime(3.5), note: "Wet diaper, changed" },
+      { id: "c_l3", parent_id: uid, kind: "slept", at: makeTime(5), note: "Slept for 1 hour in cot" },
+      { id: "c_l4", parent_id: uid, kind: "fed", at: makeTime(6.5), note: "Breastfeeding, 15 mins" },
+      { id: "c_l5", parent_id: uid, kind: "diaper", at: makeTime(8.5), note: "Wet and dirty diaper" },
+      { id: "c_l6", parent_id: uid, kind: "slept", at: makeTime(10), note: "Morning nap: 1.5 hours" },
+      { id: "c_l7", parent_id: uid, kind: "fed", at: makeTime(12), note: "110 ml formula feed" },
+      { id: "c_l8", parent_id: uid, kind: "water", at: makeTime(14), note: "Parent water check: 250ml" },
+      { id: "c_l9", parent_id: uid, kind: "fed", at: makeTime(16), note: "Breastfeeding, 12 mins" },
+      { id: "c_l10", parent_id: uid, kind: "slept", at: makeTime(22), note: "Overnight sleep stretch" },
+      { id: "c_l11", parent_id: uid, kind: "fed", at: makeTime(28), note: "120 ml formula feed" },
+      { id: "c_l12", parent_id: uid, kind: "diaper", at: makeTime(32), note: "Wet diaper" },
+      { id: "c_l13", parent_id: uid, kind: "slept", at: makeTime(36), note: "Nap time: 45 mins" },
+      { id: "c_l14", parent_id: uid, kind: "fed", at: makeTime(52), note: "100 ml formula feed" },
     ];
-    await supabase.from("care_logs").insert(careLogs);
+    careLogs.forEach((log) => {
+      batch.set(doc(db, "care_logs", log.id), log);
+    });
 
     // 2. Mood Logs
     const moodLogs = [
-      { parent_id: uid, score: 4, stress_score: 3, energy_score: 6, note: "Feeling okay. Woke up rested.", at: makeTime(4) },
-      { parent_id: uid, score: 3, stress_score: 5, energy_score: 4, note: "Slightly tired today, baby fussing.", at: makeTime(28) },
-      { parent_id: uid, score: 4, stress_score: 4, energy_score: 5, note: "Partner took shifts, felt better.", at: makeTime(52) },
+      { id: "m_l1", parent_id: uid, score: 4, stress_score: 3, energy_score: 6, note: "Feeling okay. Woke up rested.", at: makeTime(4) },
+      { id: "m_l2", parent_id: uid, score: 3, stress_score: 5, energy_score: 4, note: "Slightly tired today, baby fussing.", at: makeTime(28) },
+      { id: "m_l3", parent_id: uid, score: 4, stress_score: 4, energy_score: 5, note: "Partner took shifts, felt better.", at: makeTime(52) },
     ];
-    await supabase.from("mood_logs").insert(moodLogs);
+    moodLogs.forEach((log) => {
+      batch.set(doc(db, "mood_logs", log.id), log);
+    });
 
     // 3. Growth Records
     const growthRecords = [
-      { baby_id: babyId, age_months: 0, weight_kg: 3.2, height_cm: 49.0, at: makeTime(4 * 30 * 24) },
-      { baby_id: babyId, age_months: 2, weight_kg: 5.0, height_cm: 56.5, at: makeTime(2 * 30 * 24) },
-      { baby_id: babyId, age_months: 4, weight_kg: 6.2, height_cm: 62.5, at: makeTime(1) },
+      { id: "g_r1", baby_id: uid, age_months: 0, weight_kg: 3.2, height_cm: 49.0, at: makeTime(4 * 30 * 24) },
+      { id: "g_r2", baby_id: uid, age_months: 2, weight_kg: 5.0, height_cm: 56.5, at: makeTime(2 * 30 * 24) },
+      { id: "g_r3", baby_id: uid, age_months: 4, weight_kg: 6.2, height_cm: 62.5, at: makeTime(1) },
     ];
-    await supabase.from("growth_records").insert(growthRecords);
+    growthRecords.forEach((log) => {
+      batch.set(doc(db, "growth_records", log.id), log);
+    });
 
     // 4. Vaccinations Checklist
     const vaccinations = [
-      { baby_id: babyId, id: "v1", name: "Hepatitis B (HepB) - Dose 1", disease: "Hepatitis B", due_age_months: 0, status: "completed", notes: "Given at birth." },
-      { baby_id: babyId, id: "v2", name: "Rotavirus (RV) - Dose 1", disease: "Rotavirus diarrhea", due_age_months: 2, status: "completed", notes: "Completed." },
-      { baby_id: babyId, id: "v3", name: "DTaP - Dose 1", disease: "Diphtheria, Tetanus, Pertussis", due_age_months: 2, status: "completed", notes: "Completed." },
-      { baby_id: babyId, id: "v4", name: "DTaP - Dose 2", disease: "Diphtheria, Tetanus, Pertussis", due_age_months: 4, status: "completed", notes: "Completed." },
-      { baby_id: babyId, id: "v5", name: "DTaP - Dose 3", disease: "Diphtheria, Tetanus, Pertussis", due_age_months: 6, status: "scheduled", notes: "Due at 6 months." },
+      { baby_id: uid, id: "v1", name: "Hepatitis B (HepB) - Dose 1", disease: "Hepatitis B", due_age_months: 0, status: "completed", notes: "Given at birth." },
+      { baby_id: uid, id: "v2", name: "Rotavirus (RV) - Dose 1", disease: "Rotavirus diarrhea", due_age_months: 2, status: "completed", notes: "Completed." },
+      { baby_id: uid, id: "v3", name: "DTaP - Dose 1", disease: "Diphtheria, Tetanus, Pertussis", due_age_months: 2, status: "completed", notes: "Completed." },
+      { baby_id: uid, id: "v4", name: "DTaP - Dose 2", disease: "Diphtheria, Tetanus, Pertussis", due_age_months: 4, status: "completed", notes: "Completed." },
+      { baby_id: uid, id: "v5", name: "DTaP - Dose 3", disease: "Diphtheria, Tetanus, Pertussis", due_age_months: 6, status: "scheduled", notes: "Due at 6 months." },
     ];
-    await supabase.from("vaccinations").insert(vaccinations);
+    vaccinations.forEach((log) => {
+      batch.set(doc(db, "vaccinations", log.id), log);
+    });
+
+    await batch.commit();
   };
 
   // Seeding engine for LocalStorage fallback

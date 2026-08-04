@@ -10,6 +10,7 @@ import {
   onAuthStateChanged,
   type User
 } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 export { onAuthStateChanged, type User };
 
@@ -57,6 +58,7 @@ if (app) {
 
 export const auth = initializedAuth;
 export const googleProvider = app ? new GoogleAuthProvider() : null;
+export const db = app ? getFirestore(app) : null;
 
 // Auth helper functions executed inside the same compiled chunk to prevent argument errors
 export async function loginWithGoogle() {

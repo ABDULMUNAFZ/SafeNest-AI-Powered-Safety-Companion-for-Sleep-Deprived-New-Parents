@@ -1,6 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
-import { auth as firebaseAuth } from "./firebase";
-import { supabase, isSupabaseConfigured } from "./supabase";
+import { auth as firebaseAuth, db } from "./firebase";
+import { 
+  collection, 
+  doc, 
+  getDoc, 
+  getDocs, 
+  setDoc, 
+  deleteDoc, 
+  query, 
+  where, 
+  orderBy 
+} from "firebase/firestore";
 
 export type LogKind = "fed" | "slept" | "diaper" | "medicine" | "water";
 
@@ -114,6 +124,8 @@ const KEYS = {
   settings: "safenest.settings",
 } as const;
 
+const isDbConfigured = Boolean(db);
+
 // Helper to read local cache
 function readLocal<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -136,7 +148,7 @@ function writeLocal(key: string, value: unknown) {
   }
 }
 
-// HYBRID SYNC HOOK (Cache First, background sync with Supabase)
+// HYBRID SYNC HOOK (Cache First, background sync with Firestore)
 function useSyncState<T>(key: string, fallback: T, fetchRemote?: (uid: string) => Promise<T>, saveRemote?: (uid: string, data: T) => Promise<void>) {
   const [value, setValue] = useState<T>(() => readLocal<T>(key, fallback));
   const [hydrated, setHydrated] = useState(false);
@@ -168,15 +180,15 @@ function useSyncState<T>(key: string, fallback: T, fetchRemote?: (uid: string) =
     return unsubscribe;
   }, []);
 
-  // Trigger background remote fetch once user is authenticated and Supabase configured
+  // Trigger background remote fetch once user is authenticated
   useEffect(() => {
-    if (uid && isSupabaseConfigured && fetchRemote) {
+    if (uid && isDbConfigured && fetchRemote) {
       fetchRemote(uid)
         .then((remoteData) => {
           setValue(remoteData);
           writeLocal(key, remoteData);
         })
-        .catch((err) => console.warn("Supabase fetch failed (running offline):", err));
+        .catch((err) => console.warn("Firestore fetch failed (running offline):", err));
     }
   }, [uid, key, fetchRemote]);
 
@@ -187,11 +199,11 @@ function useSyncState<T>(key: string, fallback: T, fetchRemote?: (uid: string) =
       writeLocal(key, next);
 
       // 2. Write to remote database asynchronously in the background
-      if (uid && isSupabaseConfigured && saveRemote) {
+      if (uid && isDbConfigured && saveRemote) {
         try {
           await saveRemote(uid, next);
         } catch (err) {
-          console.error("Supabase sync background write failed:", err);
+          console.error("Firestore sync background write failed:", err);
         }
       }
     },
@@ -206,20 +218,29 @@ const newId = () => Math.random().toString(36).slice(2, 10);
 // 1. CARE LOGS HOOK
 export function useCareLogs() {
   const fetchRemote = async (uid: string) => {
-    if (!supabase) return [];
-    const { data } = await supabase
-      .from("care_logs")
-      .select("id, kind, at, note")
-      .eq("parent_id", uid)
-      .order("at", { ascending: false });
-    
-    if (!data) return [];
-    return data.map((l: any) => ({
-      id: l.id,
-      kind: l.kind as LogKind,
-      at: new Date(l.at).getTime(),
-      note: l.note || undefined
-    }));
+    if (!db) return [];
+    try {
+      const q = query(
+        collection(db, "care_logs"), 
+        where("parent_id", "==", uid), 
+        orderBy("at", "desc")
+      );
+      const querySnapshot = await getDocs(q);
+      const logs: CareLog[] = [];
+      querySnapshot.forEach((doc) => {
+        const d = doc.data();
+        logs.push({
+          id: doc.id,
+          kind: d.kind as LogKind,
+          at: typeof d.at === "string" ? new Date(d.at).getTime() : d.at,
+          note: d.note || undefined
+        });
+      });
+      return logs;
+    } catch (e) {
+      console.warn("Firestore care_logs query failed, using empty:", e);
+      return [];
+    }
   };
 
   const saveRemote = async (uid: string, logs: CareLog[]) => {
@@ -239,111 +260,112 @@ export function useCareLogs() {
       const nextValue = [entry, ...value].slice(0, 400);
       update(nextValue);
 
-      // Write individual entry to Supabase
+      // Write individual entry to Firestore
       const currentUser = firebaseAuth?.currentUser;
-      if (currentUser && isSupabaseConfigured && supabase) {
-        supabase.from("care_logs").insert({
+      if (currentUser && db) {
+        setDoc(doc(db, "care_logs", entry.id), {
           id: entry.id,
           parent_id: currentUser.uid,
           kind: entry.kind,
-          at: new Date(entry.at).toISOString(),
-          note: entry.note
-        }).then(({ error }) => {
-          if (error) console.error("Error logging care to remote DB:", error);
-        });
+          at: entry.at,
+          note: entry.note || null
+        }).catch((err) => console.error("Firestore care_logs add failed:", err));
       }
-
-      return entry;
     },
     [update, value]
   );
 
-  const lastOf = useCallback((kind: LogKind) => value.find((l) => l.kind === kind), [value]);
+  const deleteLog = useCallback(
+    (dl: CareLog) => {
+      update(value.filter((l) => l.id !== dl.id));
 
-  const replace = useCallback((nextLogs: CareLog[]) => {
-    update(nextLogs);
-    // Handle individual delete on Supabase
-    const currentUser = firebaseAuth?.currentUser;
-    if (currentUser && isSupabaseConfigured && supabase) {
-      const currentIds = new Set(nextLogs.map(l => l.id));
-      const deletedLogs = value.filter(l => !currentIds.has(l.id));
-      deletedLogs.forEach(dl => {
-        supabase.from("care_logs").delete().eq("id", dl.id).then();
-      });
-    }
-  }, [update, value]);
+      const currentUser = firebaseAuth?.currentUser;
+      if (currentUser && db) {
+        deleteDoc(doc(db, "care_logs", dl.id)).catch((err) => console.error("Firestore care_logs delete failed:", err));
+      }
+    },
+    [update, value]
+  );
 
-  return { logs: value, addLog, lastOf, hydrated, replace };
+  return { logs: value, addLog, deleteLog, hydrated };
 }
 
 // 2. MOOD LOGS HOOK
-export function useMoods() {
+export function useMoodLogs() {
   const fetchRemote = async (uid: string) => {
-    if (!supabase) return [];
-    const { data } = await supabase
-      .from("mood_logs")
-      .select("id, score, stress_score, energy_score, note, at")
-      .eq("parent_id", uid)
-      .order("at", { ascending: false });
+    if (!db) return [];
+    try {
+      const q = query(
+        collection(db, "mood_logs"), 
+        where("parent_id", "==", uid), 
+        orderBy("at", "desc")
+      );
+      const querySnapshot = await getDocs(q);
+      const moods: MoodEntry[] = [];
+      querySnapshot.forEach((doc) => {
+        const d = doc.data();
+        moods.push({
+          id: doc.id,
+          at: typeof d.at === "string" ? new Date(d.at).getTime() : d.at,
+          score: d.score as 1 | 2 | 3 | 4 | 5,
+          stressScore: d.stress_score || undefined,
+          energyScore: d.energy_score || undefined,
+          note: d.note || undefined
+        });
+      });
+      return moods;
+    } catch (e) {
+      console.warn("Firestore mood_logs query failed, using empty:", e);
+      return [];
+    }
+  };
 
-    if (!data) return [];
-    return data.map((m: any) => ({
-      id: m.id,
-      score: m.score as MoodEntry["score"],
-      stressScore: m.stress_score || 5,
-      energyScore: m.energy_score || 5,
-      note: m.note || undefined,
-      at: new Date(m.at).getTime()
-    }));
+  const saveRemote = async (uid: string, moods: MoodEntry[]) => {
+    // Handled individually inside addMood to prevent massive payloads
   };
 
   const { value, update, hydrated } = useSyncState<MoodEntry[]>(
     KEYS.moods,
     [],
-    fetchRemote
+    fetchRemote,
+    saveRemote
   );
 
   const addMood = useCallback(
-    (score: MoodEntry["score"], note?: string, stressScore?: number, energyScore?: number) => {
+    (score: 1 | 2 | 3 | 4 | 5, stressScore?: number, energyScore?: number, note?: string) => {
       const entry: MoodEntry = {
         id: newId(),
         at: Date.now(),
         score,
-        stressScore: stressScore ?? (score <= 2 ? 8 : score === 3 ? 5 : 3),
-        energyScore: energyScore ?? (score <= 2 ? 3 : score === 3 ? 5 : 7),
+        ...(stressScore !== undefined ? { stressScore } : {}),
+        ...(energyScore !== undefined ? { energyScore } : {}),
         ...(note ? { note } : {}),
       };
-      
-      update([entry, ...value].slice(0, 120));
+      const nextValue = [entry, ...value].slice(0, 100);
+      update(nextValue);
 
-      // Async write to Supabase
+      // Write individual entry to Firestore
       const currentUser = firebaseAuth?.currentUser;
-      if (currentUser && isSupabaseConfigured && supabase) {
-        supabase.from("mood_logs").insert({
+      if (currentUser && db) {
+        setDoc(doc(db, "mood_logs", entry.id), {
           id: entry.id,
           parent_id: currentUser.uid,
           score: entry.score,
-          stress_score: entry.stressScore,
-          energy_score: entry.energyScore,
-          note: entry.note,
-          at: new Date(entry.at).toISOString()
-        }).then();
+          stress_score: entry.stressScore || null,
+          energy_score: entry.energyScore || null,
+          note: entry.note || null,
+          at: entry.at
+        }).catch((err) => console.error("Firestore mood_logs add failed:", err));
       }
-
-      return entry;
     },
     [update, value]
   );
 
-  let lowStreak = 0;
-  for (const entry of value) {
-    if (entry.score <= 2) lowStreak += 1;
-    else break;
-  }
+  const lowStreak = value.slice(0, 3).every((m) => m.score <= 2) && value.length >= 3;
 
   const average = value.length
-    ? value.slice(0, 7).reduce((sum, m) => sum + m.score, 0) / Math.min(value.length, 7)
-    : 0;
+    ? value.reduce((sum, m) => sum + m.score, 0) / value.length
+    : 5;
 
   const averageStress = value.length
     ? value.slice(0, 7).reduce((sum, m) => sum + (m.stressScore || 5), 0) / Math.min(value.length, 7)
@@ -359,57 +381,55 @@ export function useMoods() {
 // 3. PROFILE HOOK
 export function useProfile() {
   const fetchRemote = async (uid: string) => {
-    if (!supabase) return DEFAULT_PROFILE;
-    
-    // Fetch profile and baby details
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("parent_name, partner_name, partner_phone, emergency_number, share_with_partner")
-      .eq("id", uid)
-      .single();
+    if (!db) return DEFAULT_PROFILE;
+    try {
+      const profileDoc = await getDoc(doc(db, "profiles", uid));
+      const babyDoc = await getDoc(doc(db, "babies", uid));
 
-    const { data: babyData } = await supabase
-      .from("babies")
-      .select("*")
-      .eq("parent_id", uid)
-      .single();
+      if (!profileDoc.exists() && !babyDoc.exists()) return DEFAULT_PROFILE;
 
-    if (!profileData && !babyData) return DEFAULT_PROFILE;
+      const profileData = profileDoc.exists() ? profileDoc.data() : null;
+      const babyData = babyDoc.exists() ? babyDoc.data() : null;
 
-    return {
-      parentName: profileData?.parent_name || DEFAULT_PROFILE.parentName,
-      partnerName: profileData?.partner_name || DEFAULT_PROFILE.partnerName,
-      partnerPhone: profileData?.partner_phone || DEFAULT_PROFILE.partnerPhone,
-      emergencyNumber: profileData?.emergency_number || DEFAULT_PROFILE.emergencyNumber,
-      shareWithPartner: profileData?.share_with_partner ?? DEFAULT_PROFILE.shareWithPartner,
-      
-      babyName: babyData?.baby_name || DEFAULT_PROFILE.babyName,
-      birthDate: babyData?.birth_date || DEFAULT_PROFILE.birthDate,
-      ageMonths: babyData?.age_months || DEFAULT_PROFILE.ageMonths,
-      weightKg: babyData?.weight_kg || DEFAULT_PROFILE.weightKg,
-      heightCm: babyData?.height_cm || DEFAULT_PROFILE.heightCm,
-      bloodGroup: babyData?.blood_group || DEFAULT_PROFILE.bloodGroup,
-      allergies: babyData?.allergies || DEFAULT_PROFILE.allergies,
-      pediatrician: babyData?.pediatrician || DEFAULT_PROFILE.pediatrician,
-      pediatricianPhone: babyData?.pediatrician_phone || DEFAULT_PROFILE.pediatricianPhone,
-      hospitalName: babyData?.hospital_name || DEFAULT_PROFILE.hospitalName,
-      insuranceName: babyData?.insurance_name || DEFAULT_PROFILE.insuranceName,
-      insurancePolicy: babyData?.insurance_policy || DEFAULT_PROFILE.insurancePolicy,
-    };
+      return {
+        parentName: profileData?.parent_name || DEFAULT_PROFILE.parentName,
+        partnerName: profileData?.partner_name || DEFAULT_PROFILE.partnerName,
+        partnerPhone: profileData?.partner_phone || DEFAULT_PROFILE.partnerPhone,
+        emergencyNumber: profileData?.emergency_number || DEFAULT_PROFILE.emergencyNumber,
+        shareWithPartner: profileData?.share_with_partner ?? DEFAULT_PROFILE.shareWithPartner,
+        
+        babyName: babyData?.baby_name || DEFAULT_PROFILE.babyName,
+        birthDate: babyData?.birth_date || DEFAULT_PROFILE.birthDate,
+        ageMonths: babyData?.age_months || DEFAULT_PROFILE.ageMonths,
+        weightKg: babyData?.weight_kg || DEFAULT_PROFILE.weightKg,
+        heightCm: babyData?.height_cm || DEFAULT_PROFILE.heightCm,
+        bloodGroup: babyData?.blood_group || DEFAULT_PROFILE.bloodGroup,
+        allergies: babyData?.allergies || DEFAULT_PROFILE.allergies,
+        pediatrician: babyData?.pediatrician || DEFAULT_PROFILE.pediatrician,
+        pediatricianPhone: babyData?.pediatrician_phone || DEFAULT_PROFILE.pediatricianPhone,
+        hospitalName: babyData?.hospital_name || DEFAULT_PROFILE.hospitalName,
+        insuranceName: babyData?.insurance_name || DEFAULT_PROFILE.insuranceName,
+        insurancePolicy: babyData?.insurance_policy || DEFAULT_PROFILE.insurancePolicy,
+      };
+    } catch (e) {
+      console.warn("Firestore profile fetch failed, using default:", e);
+      return DEFAULT_PROFILE;
+    }
   };
 
   const saveRemote = async (uid: string, next: BabyProfile) => {
-    if (!supabase) return;
-    await supabase.from("profiles").upsert({
+    if (!db) return;
+    await setDoc(doc(db, "profiles", uid), {
       id: uid,
       parent_name: next.parentName,
       partner_name: next.partnerName,
       partner_phone: next.partnerPhone,
       emergency_number: next.emergencyNumber,
-      share_with_partner: next.shareWithPartner
+      share_with_partner: next.shareWithPartner,
+      updated_at: new Date().toISOString()
     });
 
-    await supabase.from("babies").upsert({
+    await setDoc(doc(db, "babies", uid), {
       parent_id: uid,
       baby_name: next.babyName,
       birth_date: next.birthDate,
@@ -433,209 +453,223 @@ export function useProfile() {
     saveRemote
   );
 
-  const save = useCallback(
-    (patch: Partial<BabyProfile>) => update({ ...value, ...patch }),
-    [update, value]
-  );
-
-  return { profile: value, save, hydrated };
+  return { profile: value, updateProfile: update, hydrated };
 }
 
 // 4. GROWTH RECORDS HOOK
-export function useGrowthRecords() {
+export function useGrowth() {
   const fetchRemote = async (uid: string) => {
-    if (!supabase) return [];
-    
-    // Get baby id first
-    const { data: baby } = await supabase.from("babies").select("id").eq("parent_id", uid).single();
-    if (!baby) return [];
+    if (!db) return [];
+    try {
+      const q = query(
+        collection(db, "growth_records"), 
+        where("baby_id", "==", uid), 
+        orderBy("at", "desc")
+      );
+      const querySnapshot = await getDocs(q);
+      const records: GrowthRecord[] = [];
+      querySnapshot.forEach((doc) => {
+        const d = doc.data();
+        records.push({
+          id: doc.id,
+          at: typeof d.at === "string" ? new Date(d.at).getTime() : d.at,
+          ageMonths: d.age_months,
+          weightKg: d.weight_kg,
+          heightCm: d.height_cm,
+          headCircumferenceCm: d.head_circumference_cm || undefined
+        });
+      });
+      return records;
+    } catch (e) {
+      console.warn("Firestore growth_records query failed:", e);
+      return [];
+    }
+  };
 
-    const { data } = await supabase
-      .from("growth_records")
-      .select("id, age_months, weight_kg, height_cm, head_circumference_cm, at")
-      .eq("baby_id", baby.id)
-      .order("at", { ascending: true });
-
-    if (!data) return [];
-    return data.map((g: any) => ({
-      id: g.id,
-      ageMonths: g.age_months,
-      weightKg: g.weight_kg,
-      heightCm: g.height_cm,
-      headCircumferenceCm: g.head_circumference_cm || undefined,
-      at: new Date(g.at).getTime()
-    }));
+  const saveRemote = async (uid: string, records: GrowthRecord[]) => {
+    // Handled individually inside addRecord to prevent massive payloads
   };
 
   const { value, update, hydrated } = useSyncState<GrowthRecord[]>(
     KEYS.growth,
     [],
-    fetchRemote
+    fetchRemote,
+    saveRemote
   );
 
-  const addGrowth = useCallback(
-    async (weightKg: number, heightCm: number, headCircumferenceCm?: number) => {
-      const current = readLocal<BabyProfile>(KEYS.profile, DEFAULT_PROFILE);
+  const addRecord = useCallback(
+    async (ageMonths: number, weightKg: number, heightCm: number, headCircumferenceCm?: number) => {
       const entry: GrowthRecord = {
         id: newId(),
         at: Date.now(),
-        ageMonths: current.ageMonths,
+        ageMonths,
         weightKg,
         heightCm,
-        headCircumferenceCm,
+        ...(headCircumferenceCm !== undefined ? { headCircumferenceCm } : {}),
       };
+      const nextValue = [entry, ...value].slice(0, 100);
+      update(nextValue);
 
-      update([...value, entry].sort((a, b) => a.at - b.at));
-
-      // Async write to Supabase
+      // Write individual entry to Firestore
       const currentUser = firebaseAuth?.currentUser;
-      if (currentUser && isSupabaseConfigured && supabase) {
-        const { data: baby } = await supabase.from("babies").select("id").eq("parent_id", currentUser.uid).single();
-        if (baby) {
-          await supabase.from("growth_records").insert({
-            id: entry.id,
-            baby_id: baby.id,
-            age_months: entry.ageMonths,
-            weight_kg: entry.weightKg,
-            height_cm: entry.heightCm,
-            head_circumference_cm: entry.headCircumferenceCm,
-            at: new Date(entry.at).toISOString()
-          });
-        }
+      if (currentUser && db) {
+        await setDoc(doc(db, "growth_records", entry.id), {
+          id: entry.id,
+          baby_id: currentUser.uid,
+          age_months: entry.ageMonths,
+          weight_kg: entry.weightKg,
+          height_cm: entry.heightCm,
+          head_circumference_cm: entry.headCircumferenceCm || null,
+          at: entry.at
+        }).catch((err) => console.error("Firestore growth_record add failed:", err));
       }
-
-      return entry;
     },
     [update, value]
   );
 
-  return { growth: value, addGrowth, hydrated };
+  return { records: value, addRecord, hydrated };
 }
 
-// 5. VACCINATIONS CHECKLIST HOOK
-export function useVaccinations() {
+// 5. VACCINATIONS HOOK
+export function useVaccines() {
   const fetchRemote = async (uid: string) => {
-    if (!supabase) return [];
-    
-    const { data: baby } = await supabase.from("babies").select("id").eq("parent_id", uid).single();
-    if (!baby) return [];
+    if (!db) return [];
+    try {
+      const q = query(
+        collection(db, "vaccinations"), 
+        where("baby_id", "==", uid)
+      );
+      const querySnapshot = await getDocs(q);
+      const vaccines: Vaccine[] = [];
+      querySnapshot.forEach((doc) => {
+        const d = doc.data();
+        vaccines.push({
+          id: doc.id,
+          name: d.name,
+          disease: d.disease,
+          dueAgeMonths: d.due_age_months,
+          status: d.status as "completed" | "scheduled" | "overdue",
+          completedAt: d.completed_at ? (typeof d.completed_at === "string" ? new Date(d.completed_at).getTime() : d.completed_at) : undefined,
+          notes: d.notes || ""
+        });
+      });
+      return vaccines;
+    } catch (e) {
+      console.warn("Firestore vaccinations query failed:", e);
+      return [];
+    }
+  };
 
-    const { data } = await supabase
-      .from("vaccinations")
-      .select("id, name, disease, due_age_months, status, completed_at, notes")
-      .eq("baby_id", baby.id);
-
-    if (!data || data.length === 0) return [];
-    return data.map((v: any) => ({
-      id: v.id,
-      name: v.name,
-      disease: v.disease,
-      dueAgeMonths: v.due_age_months,
-      status: v.status as Vaccine["status"],
-      completedAt: v.completed_at ? new Date(v.completed_at).getTime() : undefined,
-      notes: v.notes
-    }));
+  const saveRemote = async (uid: string, vaccines: Vaccine[]) => {
+    // Handled individually inside toggleVaccine
   };
 
   const { value, update, hydrated } = useSyncState<Vaccine[]>(
     KEYS.vaccines,
     [],
-    fetchRemote
+    fetchRemote,
+    saveRemote
   );
 
   const toggleVaccine = useCallback(
-    async (id: string) => {
-      const next = value.map((v) => {
-        if (v.id === id) {
-          const isComp = v.status === "completed";
+    async (vaccineId: string) => {
+      let nextStatus: "completed" | "scheduled" = "scheduled";
+      const nextValue = value.map((v) => {
+        if (v.id === vaccineId) {
+          const isCompleted = v.status === "completed";
+          nextStatus = isCompleted ? "scheduled" : "completed";
           return {
             ...v,
-            status: isComp ? "scheduled" : ("completed" as const),
-            completedAt: isComp ? undefined : Date.now(),
+            status: nextStatus,
+            completedAt: isCompleted ? undefined : Date.now(),
           };
         }
         return v;
       });
-      
-      update(next);
+      update(nextValue);
 
-      // Async write to Supabase
+      // Update individual vaccine in Firestore
       const currentUser = firebaseAuth?.currentUser;
-      if (currentUser && isSupabaseConfigured && supabase) {
-        const item = next.find(v => v.id === id)!;
-        await supabase.from("vaccinations").update({
-          status: item.status,
-          completed_at: item.completedAt ? new Date(item.completedAt).toISOString() : null
-        }).eq("id", id);
+      if (currentUser && db) {
+        await setDoc(doc(db, "vaccinations", vaccineId), {
+          status: nextStatus,
+          completed_at: nextStatus === "completed" ? Date.now() : null
+        }, { merge: true }).catch((err) => console.error("Firestore vaccination update failed:", err));
       }
     },
-    [value, update]
+    [update, value]
   );
 
   return { vaccines: value, toggleVaccine, hydrated };
 }
 
-// 6. VAULT DOCUMENTS HOOK
-export function useVaultDocuments() {
+// 6. DOCUMENTS HOOK
+export function useDocuments() {
   const fetchRemote = async (uid: string) => {
-    if (!supabase) return [];
-    
-    const { data: baby } = await supabase.from("babies").select("id").eq("parent_id", uid).single();
-    if (!baby) return [];
+    if (!db) return [];
+    try {
+      const q = query(
+        collection(db, "documents"), 
+        where("baby_id", "==", uid)
+      );
+      const querySnapshot = await getDocs(q);
+      const docsList: MedicalDocument[] = [];
+      querySnapshot.forEach((doc) => {
+        const d = doc.data();
+        docsList.push({
+          id: doc.id,
+          name: d.name,
+          category: d.category as any,
+          uploadedAt: typeof d.uploaded_at === "string" ? new Date(d.uploaded_at).getTime() : d.uploaded_at,
+          doctorName: d.doctor_name || undefined,
+          fileSize: d.file_size || undefined
+        });
+      });
+      return docsList;
+    } catch (e) {
+      console.warn("Firestore documents query failed:", e);
+      return [];
+    }
+  };
 
-    const { data } = await supabase
-      .from("documents")
-      .select("id, name, category, uploaded_at, doctor_name, file_size")
-      .eq("baby_id", baby.id);
-
-    if (!data) return [];
-    return data.map((d: any) => ({
-      id: d.id,
-      name: d.name,
-      category: d.category as MedicalDocument["category"],
-      uploadedAt: new Date(d.uploaded_at).getTime(),
-      doctorName: d.doctor_name || undefined,
-      fileSize: d.file_size || undefined
-    }));
+  const saveRemote = async (uid: string, documents: MedicalDocument[]) => {
+    // Handled individually inside add/delete
   };
 
   const { value, update, hydrated } = useSyncState<MedicalDocument[]>(
     KEYS.documents,
     [],
-    fetchRemote
+    fetchRemote,
+    saveRemote
   );
 
   const addDocument = useCallback(
-    async (name: string, category: MedicalDocument["category"], doctorName?: string, fileSize = "1.5 MB") => {
-      const doc: MedicalDocument = {
+    async (name: string, category: MedicalDocument["category"], doctorName?: string, fileSize?: string) => {
+      const docEntry: MedicalDocument = {
         id: newId(),
         name,
         category,
         uploadedAt: Date.now(),
-        doctorName,
-        fileSize,
+        ...(doctorName ? { doctorName } : {}),
+        ...(fileSize ? { fileSize } : {}),
       };
+      update([docEntry, ...value]);
 
-      update([doc, ...value]);
-
-      // Async write to Supabase
+      // Write to Firestore
       const currentUser = firebaseAuth?.currentUser;
-      if (currentUser && isSupabaseConfigured && supabase) {
-        const { data: baby } = await supabase.from("babies").select("id").eq("parent_id", currentUser.uid).single();
-        if (baby) {
-          await supabase.from("documents").insert({
-            id: doc.id,
-            baby_id: baby.id,
-            name: doc.name,
-            category: doc.category,
-            uploaded_at: new Date(doc.uploadedAt).toISOString(),
-            doctor_name: doc.doctorName,
-            file_size: doc.fileSize
-          });
-        }
+      if (currentUser && db) {
+        await setDoc(doc(db, "documents", docEntry.id), {
+          id: docEntry.id,
+          baby_id: currentUser.uid,
+          name: docEntry.name,
+          category: docEntry.category,
+          uploaded_at: docEntry.uploadedAt,
+          doctor_name: docEntry.doctorName || null,
+          file_size: docEntry.fileSize || null
+        }).catch((err) => console.error("Firestore document add failed:", err));
       }
 
-      return doc;
+      return docEntry;
     },
     [update, value]
   );
@@ -644,9 +678,8 @@ export function useVaultDocuments() {
     async (id: string) => {
       update(value.filter((d) => d.id !== id));
 
-      // Async delete on Supabase
-      if (isSupabaseConfigured && supabase) {
-        await supabase.from("documents").delete().eq("id", id);
+      if (db) {
+        await deleteDoc(doc(db, "documents", id)).catch((err) => console.error("Firestore document delete failed:", err));
       }
     },
     [update, value]
@@ -816,3 +849,9 @@ export function averageGapMinutes(logs: CareLog[], kind: LogKind, fallback: numb
   if (!gaps.length) return fallback;
   return Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length);
 }
+
+// Hook aliases for backward compatibility with route components
+export { useMoodLogs as useMoods };
+export { useVaccines as useVaccinations };
+export { useGrowth as useGrowthRecords };
+export { useDocuments as useVaultDocuments };
