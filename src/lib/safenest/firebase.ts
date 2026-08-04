@@ -35,12 +35,12 @@ const app = isFirebaseConfigured
   ? (getApps().length ? getApp() : initializeApp(firebaseConfig))
   : null;
 
-// Export Auth services with robust fallback persistence
+// Export Auth services with robust fallback persistence (excluding IndexedDB to prevent browser lockouts)
 export const auth = app
   ? (getApps().length 
       ? getAuth(app)
       : initializeAuth(app, {
-          persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence]
+          persistence: [browserLocalPersistence, browserSessionPersistence]
         })
     )
   : null;
