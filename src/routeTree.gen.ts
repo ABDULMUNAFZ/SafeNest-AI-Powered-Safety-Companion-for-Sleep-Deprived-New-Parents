@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AssistantRouteImport } from './routes/assistant'
 import { Route as TimelineRouteImport } from './routes/timeline'
 import { Route as WellbeingRouteImport } from './routes/wellbeing'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssistantRoute = AssistantRouteImport.update({
+  id: '/assistant',
+  path: '/assistant',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TimelineRoute = TimelineRouteImport.update({
@@ -31,30 +37,34 @@ const WellbeingRoute = WellbeingRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/assistant': typeof AssistantRoute
   '/timeline': typeof TimelineRoute
   '/wellbeing': typeof WellbeingRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/assistant': typeof AssistantRoute
   '/timeline': typeof TimelineRoute
   '/wellbeing': typeof WellbeingRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/assistant': typeof AssistantRoute
   '/timeline': typeof TimelineRoute
   '/wellbeing': typeof WellbeingRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/timeline' | '/wellbeing'
+  fullPaths: '/' | '/assistant' | '/timeline' | '/wellbeing'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/timeline' | '/wellbeing'
-  id: '__root__' | '/' | '/timeline' | '/wellbeing'
+  to: '/' | '/assistant' | '/timeline' | '/wellbeing'
+  id: '__root__' | '/' | '/assistant' | '/timeline' | '/wellbeing'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AssistantRoute: typeof AssistantRoute
   TimelineRoute: typeof TimelineRoute
   WellbeingRoute: typeof WellbeingRoute
 }
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assistant': {
+      id: '/assistant'
+      path: '/assistant'
+      fullPath: '/assistant'
+      preLoaderRoute: typeof AssistantRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/timeline': {
@@ -87,6 +104,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AssistantRoute: AssistantRoute,
   TimelineRoute: TimelineRoute,
   WellbeingRoute: WellbeingRoute,
 }
