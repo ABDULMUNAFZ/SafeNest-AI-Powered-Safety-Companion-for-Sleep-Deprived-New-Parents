@@ -458,7 +458,7 @@ export function useProfile() {
     saveRemote
   );
 
-  return { profile: value, updateProfile: update, hydrated };
+  return { profile: value, save: update, updateProfile: update, hydrated };
 }
 
 // 4. GROWTH RECORDS HOOK
@@ -532,7 +532,44 @@ export function useGrowth() {
     [update, value]
   );
 
-  return { records: value, addRecord, hydrated };
+  const addGrowth = useCallback(
+    async (weightKg: number, heightCm: number) => {
+      let ageMonths = value.length ? value[0].ageMonths + 1 : 0;
+      try {
+        const storedProfileStr = localStorage.getItem("safenest.profile");
+        if (storedProfileStr) {
+          const storedProfile = JSON.parse(storedProfileStr);
+          ageMonths = Number(storedProfile.ageMonths) || ageMonths;
+        }
+      } catch (e) {}
+
+      const entry: GrowthRecord = {
+        id: newId(),
+        at: Date.now(),
+        ageMonths,
+        weightKg,
+        heightCm,
+      };
+      const nextValue = [entry, ...value].slice(0, 100);
+      update(nextValue);
+
+      // Write individual entry to Firestore
+      const currentUser = firebaseAuth?.currentUser;
+      if (currentUser && db) {
+        await setDoc(doc(db, "growth_records", entry.id), {
+          id: entry.id,
+          baby_id: currentUser.uid,
+          age_months: entry.ageMonths,
+          weight_kg: entry.weightKg,
+          height_cm: entry.heightCm,
+          at: entry.at
+        }).catch((err) => console.error("Firestore growth_record add failed:", err));
+      }
+    },
+    [update, value]
+  );
+
+  return { growth: value, records: value, addGrowth, addRecord, hydrated };
 }
 
 // 5. VACCINATIONS HOOK
