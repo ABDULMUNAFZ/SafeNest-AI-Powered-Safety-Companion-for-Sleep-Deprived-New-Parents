@@ -1,5 +1,12 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { 
+  getAuth, 
+  initializeAuth, 
+  browserLocalPersistence, 
+  browserSessionPersistence, 
+  indexedDBLocalPersistence, 
+  GoogleAuthProvider 
+} from "firebase/auth";
 
 // Firebase Config from environment variables
 const firebaseConfig = {
@@ -28,6 +35,14 @@ const app = isFirebaseConfigured
   ? (getApps().length ? getApp() : initializeApp(firebaseConfig))
   : null;
 
-// Export Auth services
-export const auth = app ? getAuth(app) : null;
+// Export Auth services with robust fallback persistence
+export const auth = app
+  ? (getApps().length 
+      ? getAuth(app)
+      : initializeAuth(app, {
+          persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence]
+        })
+    )
+  : null;
+
 export const googleProvider = app ? new GoogleAuthProvider() : null;
