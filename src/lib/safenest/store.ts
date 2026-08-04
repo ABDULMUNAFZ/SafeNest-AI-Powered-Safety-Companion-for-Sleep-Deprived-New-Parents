@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { auth as firebaseAuth } from "./firebase";
+import { supabase, isSupabaseConfigured } from "./supabase";
 
 export type LogKind = "fed" | "slept" | "diaper" | "medicine" | "water";
 
@@ -112,96 +114,39 @@ const KEYS = {
   settings: "safenest.settings",
 } as const;
 
-// PRE-POPULATED REALISTIC SAMPLES
-const MOCK_GROWTH: GrowthRecord[] = [
-  { id: "g1", at: new Date("2026-04-04").getTime(), ageMonths: 0, weightKg: 3.2, heightCm: 49.0, headCircumferenceCm: 34.5 },
-  { id: "g2", at: new Date("2026-05-04").getTime(), ageMonths: 1, weightKg: 4.1, heightCm: 53.0, headCircumferenceCm: 36.8 },
-  { id: "g3", at: new Date("2026-06-04").getTime(), ageMonths: 2, weightKg: 5.0, heightCm: 56.5, headCircumferenceCm: 38.5 },
-  { id: "g4", at: new Date("2026-07-04").getTime(), ageMonths: 3, weightKg: 5.7, heightCm: 59.5, headCircumferenceCm: 40.2 },
-  { id: "g5", at: new Date("2026-08-04").getTime(), ageMonths: 4, weightKg: 6.2, heightCm: 62.5, headCircumferenceCm: 41.5 },
-];
-
-const MOCK_VACCINES: Vaccine[] = [
-  { id: "v1", name: "Hepatitis B (HepB) - Dose 1", disease: "Hepatitis B", dueAgeMonths: 0, status: "completed", completedAt: new Date("2026-04-04").getTime(), notes: "Given at birth. Mild redness at site." },
-  { id: "v2", name: "Rotavirus (RV) - Dose 1", disease: "Rotavirus diarrhea", dueAgeMonths: 2, status: "completed", completedAt: new Date("2026-06-06").getTime(), notes: "Oral vaccine. Well tolerated." },
-  { id: "v3", name: "DTaP - Dose 1", disease: "Diphtheria, Tetanus, Pertussis", dueAgeMonths: 2, status: "completed", completedAt: new Date("2026-06-06").getTime(), notes: "Given in left thigh. Slight fussiness for 24h." },
-  { id: "v4", name: "Pneumococcal (PCV13) - Dose 1", disease: "Pneumonia, Meningitis", dueAgeMonths: 2, status: "completed", completedAt: new Date("2026-06-06").getTime(), notes: "Standard immunisation." },
-  { id: "v5", name: "Rotavirus (RV) - Dose 2", disease: "Rotavirus diarrhea", dueAgeMonths: 4, status: "completed", completedAt: new Date("2026-08-01").getTime(), notes: "Oral drop. Second dose completed." },
-  { id: "v6", name: "DTaP - Dose 2", disease: "Diphtheria, Tetanus, Pertussis", dueAgeMonths: 4, status: "completed", completedAt: new Date("2026-08-01").getTime(), notes: "Routine 4-month dose." },
-  { id: "v7", name: "Haemophilus influenzae type b (Hib) - Dose 2", disease: "Meningitis, Epiglottitis", dueAgeMonths: 4, status: "completed", completedAt: new Date("2026-08-01").getTime(), notes: "Mild soreness reported." },
-  { id: "v8", name: "DTaP - Dose 3", disease: "Diphtheria, Tetanus, Pertussis", dueAgeMonths: 6, status: "scheduled", notes: "Due at 6 months. Protects against whooping cough." },
-  { id: "v9", name: "Influenza (Flu) - Dose 1", disease: "Seasonal Influenza", dueAgeMonths: 6, status: "scheduled", notes: "First flu shot, followed by a booster 4 weeks later." },
-  { id: "v10", name: "MMR - Dose 1", disease: "Measles, Mumps, Rubella", dueAgeMonths: 12, status: "scheduled", notes: "Protects against childhood measles outbreaks." },
-];
-
-const MOCK_DOCUMENTS: MedicalDocument[] = [
-  { id: "d1", name: "Birth Immunisation Record.pdf", category: "vaccination_card", uploadedAt: new Date("2026-04-05").getTime(), doctorName: "Dr. Laura Vance", fileSize: "1.2 MB" },
-  { id: "d2", name: "Pediatric Visit Note - 2 Month Review.pdf", category: "pediatrician_note", uploadedAt: new Date("2026-06-07").getTime(), doctorName: "Dr. Meera Rao", fileSize: "840 KB" },
-  { id: "d3", name: "Infant Paracetamol Prescription.pdf", category: "prescription", uploadedAt: new Date("2026-07-15").getTime(), doctorName: "Dr. Meera Rao", fileSize: "420 KB" },
-];
-
-const makePastTime = (hoursAgo: number) => Date.now() - hoursAgo * 3600000;
-
-const MOCK_LOGS: CareLog[] = [
-  { id: "l1", kind: "fed", at: makePastTime(1.5), note: "120 ml formula feed" },
-  { id: "l2", kind: "diaper", at: makePastTime(2.2), note: "Wet diaper, normal yellow stool" },
-  { id: "l3", kind: "slept", at: makePastTime(4.0), note: "Napped in crib for 45 mins" },
-  { id: "l4", kind: "water", at: makePastTime(4.5), note: "Parent water check: 250ml logged" },
-  { id: "l5", kind: "fed", at: makePastTime(5.0), note: "Direct breastfeeding, 15 mins left side" },
-  { id: "l6", kind: "diaper", at: makePastTime(5.8), note: "Wet diaper" },
-  { id: "l7", kind: "medicine", at: makePastTime(7.2), note: "Infant Paracetamol (2.0 ml) given for mild fever" },
-  { id: "l8", kind: "slept", at: makePastTime(9.5), note: "Morning sleep stretch of 1.5 hours" },
-  { id: "l9", kind: "fed", at: makePastTime(11.0), note: "100 ml formula feed" },
-  { id: "l10", kind: "water", at: makePastTime(12.0), note: "Parent water check: 300ml" },
-  { id: "l11", kind: "diaper", at: makePastTime(15.0), note: "Dry diaper changed" },
-  { id: "l12", kind: "slept", at: makePastTime(20.0), note: "Overnight sleep stretch: woke once" },
-  { id: "l13", kind: "fed", at: makePastTime(21.0), note: "Breastfeeding 20 mins total" },
-];
-
-const MOCK_MOODS: MoodEntry[] = [
-  { id: "m1", at: makePastTime(6), score: 4, stressScore: 3, energyScore: 6, note: "Slept a bit better. Baby is calmer." },
-  { id: "m2", at: makePastTime(28), score: 3, stressScore: 5, energyScore: 4, note: "Feeling slightly overwhelmed but okay." },
-  { id: "m3", at: makePastTime(52), score: 2, stressScore: 8, energyScore: 2, note: "Very tired today. Aria was crying late at night." },
-  { id: "m4", at: makePastTime(76), score: 4, stressScore: 4, energyScore: 5, note: "Had a nice walk outside. Helped a lot." },
-  { id: "m5", at: makePastTime(100), score: 5, stressScore: 2, energyScore: 7, note: "Partner helped with feeds. Felt rested." },
-];
-
-function read<T>(key: string, fallback: T): T {
+// Helper to read local cache
+function readLocal<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
   try {
     const raw = window.localStorage.getItem(key);
-    if (!raw) {
-      if (key === KEYS.growth) return MOCK_GROWTH as unknown as T;
-      if (key === KEYS.vaccines) return MOCK_VACCINES as unknown as T;
-      if (key === KEYS.documents) return MOCK_DOCUMENTS as unknown as T;
-      if (key === KEYS.logs) return MOCK_LOGS as unknown as T;
-      if (key === KEYS.moods) return MOCK_MOODS as unknown as T;
-      return fallback;
-    }
-    return JSON.parse(raw) as T;
+    return raw ? JSON.parse(raw) as T : fallback;
   } catch {
     return fallback;
   }
 }
 
-function write(key: string, value: unknown) {
+// Helper to write local cache
+function writeLocal(key: string, value: unknown) {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(key, JSON.stringify(value));
     window.dispatchEvent(new CustomEvent("safenest:store", { detail: key }));
   } catch {
-    /* storage unavailable */
+    /* fallback cache failed */
   }
 }
 
-function usePersisted<T>(key: string, fallback: T) {
-  const [value, setValue] = useState<T>(fallback);
+// HYBRID SYNC HOOK (Cache First, background sync with Supabase)
+function useSyncState<T>(key: string, fallback: T, fetchRemote?: (uid: string) => Promise<T>, saveRemote?: (uid: string, data: T) => Promise<void>) {
+  const [value, setValue] = useState<T>(() => readLocal<T>(key, fallback));
   const [hydrated, setHydrated] = useState(false);
+  const [uid, setUid] = useState<string | null>(null);
 
+  // Sync state between tabs and local storage
   useEffect(() => {
-    setValue(read<T>(key, fallback));
+    setValue(readLocal<T>(key, fallback));
     setHydrated(true);
-    const sync = () => setValue(read<T>(key, fallback));
+    const sync = () => setValue(readLocal<T>(key, fallback));
     window.addEventListener("safenest:store", sync);
     window.addEventListener("storage", sync);
     return () => {
@@ -210,12 +155,47 @@ function usePersisted<T>(key: string, fallback: T) {
     };
   }, [key, fallback]);
 
+  // Listen for user auth changes to trigger Remote Sync
+  useEffect(() => {
+    if (!firebaseAuth) return;
+    const unsubscribe = firebaseAuth.onAuthStateChanged((user) => {
+      if (user) {
+        setUid(user.uid);
+      } else {
+        setUid(null);
+      }
+    });
+    return unsubscribe;
+  }, []);
+
+  // Trigger background remote fetch once user is authenticated and Supabase configured
+  useEffect(() => {
+    if (uid && isSupabaseConfigured && fetchRemote) {
+      fetchRemote(uid)
+        .then((remoteData) => {
+          setValue(remoteData);
+          writeLocal(key, remoteData);
+        })
+        .catch((err) => console.warn("Supabase fetch failed (running offline):", err));
+    }
+  }, [uid, key, fetchRemote]);
+
   const update = useCallback(
-    (next: T) => {
+    async (next: T) => {
+      // 1. Optimistic UI update locally
       setValue(next);
-      write(key, next);
+      writeLocal(key, next);
+
+      // 2. Write to remote database asynchronously in the background
+      if (uid && isSupabaseConfigured && saveRemote) {
+        try {
+          await saveRemote(uid, next);
+        } catch (err) {
+          console.error("Supabase sync background write failed:", err);
+        }
+      }
     },
-    [key],
+    [uid, key, saveRemote]
   );
 
   return { value, update, hydrated };
@@ -223,26 +203,105 @@ function usePersisted<T>(key: string, fallback: T) {
 
 const newId = () => Math.random().toString(36).slice(2, 10);
 
+// 1. CARE LOGS HOOK
 export function useCareLogs() {
-  const { value, update, hydrated } = usePersisted<CareLog[]>(KEYS.logs, MOCK_LOGS);
+  const fetchRemote = async (uid: string) => {
+    if (!supabase) return [];
+    const { data } = await supabase
+      .from("care_logs")
+      .select("id, kind, at, note")
+      .eq("parent_id", uid)
+      .order("at", { ascending: false });
+    
+    if (!data) return [];
+    return data.map((l: any) => ({
+      id: l.id,
+      kind: l.kind as LogKind,
+      at: new Date(l.at).getTime(),
+      note: l.note || undefined
+    }));
+  };
+
+  const saveRemote = async (uid: string, logs: CareLog[]) => {
+    // Handled individually inside addLog / delete to prevent massive payloads
+  };
+
+  const { value, update, hydrated } = useSyncState<CareLog[]>(
+    KEYS.logs,
+    [],
+    fetchRemote,
+    saveRemote
+  );
 
   const addLog = useCallback(
     (kind: LogKind, note?: string) => {
       const entry: CareLog = { id: newId(), kind, at: Date.now(), ...(note ? { note } : {}) };
       const nextValue = [entry, ...value].slice(0, 400);
       update(nextValue);
+
+      // Write individual entry to Supabase
+      const currentUser = firebaseAuth?.currentUser;
+      if (currentUser && isSupabaseConfigured && supabase) {
+        supabase.from("care_logs").insert({
+          id: entry.id,
+          parent_id: currentUser.uid,
+          kind: entry.kind,
+          at: new Date(entry.at).toISOString(),
+          note: entry.note
+        }).then(({ error }) => {
+          if (error) console.error("Error logging care to remote DB:", error);
+        });
+      }
+
       return entry;
     },
-    [update, value],
+    [update, value]
   );
 
   const lastOf = useCallback((kind: LogKind) => value.find((l) => l.kind === kind), [value]);
 
-  return { logs: value, addLog, lastOf, hydrated, replace: update };
+  const replace = useCallback((nextLogs: CareLog[]) => {
+    update(nextLogs);
+    // Handle individual delete on Supabase
+    const currentUser = firebaseAuth?.currentUser;
+    if (currentUser && isSupabaseConfigured && supabase) {
+      const currentIds = new Set(nextLogs.map(l => l.id));
+      const deletedLogs = value.filter(l => !currentIds.has(l.id));
+      deletedLogs.forEach(dl => {
+        supabase.from("care_logs").delete().eq("id", dl.id).then();
+      });
+    }
+  }, [update, value]);
+
+  return { logs: value, addLog, lastOf, hydrated, replace };
 }
 
+// 2. MOOD LOGS HOOK
 export function useMoods() {
-  const { value, update, hydrated } = usePersisted<MoodEntry[]>(KEYS.moods, MOCK_MOODS);
+  const fetchRemote = async (uid: string) => {
+    if (!supabase) return [];
+    const { data } = await supabase
+      .from("mood_logs")
+      .select("id, score, stress_score, energy_score, note, at")
+      .eq("parent_id", uid)
+      .order("at", { ascending: false });
+
+    if (!data) return [];
+    return data.map((m: any) => ({
+      id: m.id,
+      score: m.score as MoodEntry["score"],
+      stressScore: m.stress_score || 5,
+      energyScore: m.energy_score || 5,
+      note: m.note || undefined,
+      at: new Date(m.at).getTime()
+    }));
+  };
+
+  const { value, update, hydrated } = useSyncState<MoodEntry[]>(
+    KEYS.moods,
+    [],
+    fetchRemote
+  );
 
   const addMood = useCallback(
     (score: MoodEntry["score"], note?: string, stressScore?: number, energyScore?: number) => {
@@ -254,10 +313,26 @@ export function useMoods() {
         energyScore: energyScore ?? (score <= 2 ? 3 : score === 3 ? 5 : 7),
         ...(note ? { note } : {}),
       };
+      
       update([entry, ...value].slice(0, 120));
+
+      // Async write to Supabase
+      const currentUser = firebaseAuth?.currentUser;
+      if (currentUser && isSupabaseConfigured && supabase) {
+        supabase.from("mood_logs").insert({
+          id: entry.id,
+          parent_id: currentUser.uid,
+          score: entry.score,
+          stress_score: entry.stressScore,
+          energy_score: entry.energyScore,
+          note: entry.note,
+          at: new Date(entry.at).toISOString()
+        }).then();
+      }
+
       return entry;
     },
-    [update, value],
+    [update, value]
   );
 
   let lowStreak = 0;
@@ -281,21 +356,126 @@ export function useMoods() {
   return { moods: value, addMood, lowStreak, average, averageStress, averageEnergy, hydrated };
 }
 
+// 3. PROFILE HOOK
 export function useProfile() {
-  const { value, update, hydrated } = usePersisted<BabyProfile>(KEYS.profile, DEFAULT_PROFILE);
+  const fetchRemote = async (uid: string) => {
+    if (!supabase) return DEFAULT_PROFILE;
+    
+    // Fetch profile and baby details
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("parent_name, partner_name, partner_phone, emergency_number, share_with_partner")
+      .eq("id", uid)
+      .single();
+
+    const { data: babyData } = await supabase
+      .from("babies")
+      .select("*")
+      .eq("parent_id", uid)
+      .single();
+
+    if (!profileData && !babyData) return DEFAULT_PROFILE;
+
+    return {
+      parentName: profileData?.parent_name || DEFAULT_PROFILE.parentName,
+      partnerName: profileData?.partner_name || DEFAULT_PROFILE.partnerName,
+      partnerPhone: profileData?.partner_phone || DEFAULT_PROFILE.partnerPhone,
+      emergencyNumber: profileData?.emergency_number || DEFAULT_PROFILE.emergencyNumber,
+      shareWithPartner: profileData?.share_with_partner ?? DEFAULT_PROFILE.shareWithPartner,
+      
+      babyName: babyData?.baby_name || DEFAULT_PROFILE.babyName,
+      birthDate: babyData?.birth_date || DEFAULT_PROFILE.birthDate,
+      ageMonths: babyData?.age_months || DEFAULT_PROFILE.ageMonths,
+      weightKg: babyData?.weight_kg || DEFAULT_PROFILE.weightKg,
+      heightCm: babyData?.height_cm || DEFAULT_PROFILE.heightCm,
+      bloodGroup: babyData?.blood_group || DEFAULT_PROFILE.bloodGroup,
+      allergies: babyData?.allergies || DEFAULT_PROFILE.allergies,
+      pediatrician: babyData?.pediatrician || DEFAULT_PROFILE.pediatrician,
+      pediatricianPhone: babyData?.pediatrician_phone || DEFAULT_PROFILE.pediatricianPhone,
+      hospitalName: babyData?.hospital_name || DEFAULT_PROFILE.hospitalName,
+      insuranceName: babyData?.insurance_name || DEFAULT_PROFILE.insuranceName,
+      insurancePolicy: babyData?.insurance_policy || DEFAULT_PROFILE.insurancePolicy,
+    };
+  };
+
+  const saveRemote = async (uid: string, next: BabyProfile) => {
+    if (!supabase) return;
+    await supabase.from("profiles").upsert({
+      id: uid,
+      parent_name: next.parentName,
+      partner_name: next.partnerName,
+      partner_phone: next.partnerPhone,
+      emergency_number: next.emergencyNumber,
+      share_with_partner: next.shareWithPartner
+    });
+
+    await supabase.from("babies").upsert({
+      parent_id: uid,
+      baby_name: next.babyName,
+      birth_date: next.birthDate,
+      age_months: next.ageMonths,
+      weight_kg: next.weightKg,
+      height_cm: next.heightCm,
+      blood_group: next.bloodGroup,
+      allergies: next.allergies,
+      pediatrician: next.pediatrician,
+      pediatrician_phone: next.pediatricianPhone,
+      hospital_name: next.hospitalName,
+      insurance_name: next.insuranceName,
+      insurance_policy: next.insurancePolicy
+    });
+  };
+
+  const { value, update, hydrated } = useSyncState<BabyProfile>(
+    KEYS.profile,
+    DEFAULT_PROFILE,
+    fetchRemote,
+    saveRemote
+  );
+
   const save = useCallback(
     (patch: Partial<BabyProfile>) => update({ ...value, ...patch }),
-    [update, value],
+    [update, value]
   );
-  return { profile: { ...DEFAULT_PROFILE, ...value }, save, hydrated };
+
+  return { profile: value, save, hydrated };
 }
 
+// 4. GROWTH RECORDS HOOK
 export function useGrowthRecords() {
-  const { value, update, hydrated } = usePersisted<GrowthRecord[]>(KEYS.growth, MOCK_GROWTH);
+  const fetchRemote = async (uid: string) => {
+    if (!supabase) return [];
+    
+    // Get baby id first
+    const { data: baby } = await supabase.from("babies").select("id").eq("parent_id", uid).single();
+    if (!baby) return [];
+
+    const { data } = await supabase
+      .from("growth_records")
+      .select("id, age_months, weight_kg, height_cm, head_circumference_cm, at")
+      .eq("baby_id", baby.id)
+      .order("at", { ascending: true });
+
+    if (!data) return [];
+    return data.map((g: any) => ({
+      id: g.id,
+      ageMonths: g.age_months,
+      weightKg: g.weight_kg,
+      heightCm: g.height_cm,
+      headCircumferenceCm: g.head_circumference_cm || undefined,
+      at: new Date(g.at).getTime()
+    }));
+  };
+
+  const { value, update, hydrated } = useSyncState<GrowthRecord[]>(
+    KEYS.growth,
+    [],
+    fetchRemote
+  );
 
   const addGrowth = useCallback(
-    (weightKg: number, heightCm: number, headCircumferenceCm?: number) => {
-      const current = read<BabyProfile>(KEYS.profile, DEFAULT_PROFILE);
+    async (weightKg: number, heightCm: number, headCircumferenceCm?: number) => {
+      const current = readLocal<BabyProfile>(KEYS.profile, DEFAULT_PROFILE);
       const entry: GrowthRecord = {
         id: newId(),
         at: Date.now(),
@@ -304,20 +484,67 @@ export function useGrowthRecords() {
         heightCm,
         headCircumferenceCm,
       };
+
       update([...value, entry].sort((a, b) => a.at - b.at));
+
+      // Async write to Supabase
+      const currentUser = firebaseAuth?.currentUser;
+      if (currentUser && isSupabaseConfigured && supabase) {
+        const { data: baby } = await supabase.from("babies").select("id").eq("parent_id", currentUser.uid).single();
+        if (baby) {
+          await supabase.from("growth_records").insert({
+            id: entry.id,
+            baby_id: baby.id,
+            age_months: entry.ageMonths,
+            weight_kg: entry.weightKg,
+            height_cm: entry.heightCm,
+            head_circumference_cm: entry.headCircumferenceCm,
+            at: new Date(entry.at).toISOString()
+          });
+        }
+      }
+
       return entry;
     },
-    [update, value],
+    [update, value]
   );
 
   return { growth: value, addGrowth, hydrated };
 }
 
+// 5. VACCINATIONS CHECKLIST HOOK
 export function useVaccinations() {
-  const { value, update, hydrated } = usePersisted<Vaccine[]>(KEYS.vaccines, MOCK_VACCINES);
+  const fetchRemote = async (uid: string) => {
+    if (!supabase) return [];
+    
+    const { data: baby } = await supabase.from("babies").select("id").eq("parent_id", uid).single();
+    if (!baby) return [];
+
+    const { data } = await supabase
+      .from("vaccinations")
+      .select("id, name, disease, due_age_months, status, completed_at, notes")
+      .eq("baby_id", baby.id);
+
+    if (!data || data.length === 0) return [];
+    return data.map((v: any) => ({
+      id: v.id,
+      name: v.name,
+      disease: v.disease,
+      dueAgeMonths: v.due_age_months,
+      status: v.status as Vaccine["status"],
+      completedAt: v.completed_at ? new Date(v.completed_at).getTime() : undefined,
+      notes: v.notes
+    }));
+  };
+
+  const { value, update, hydrated } = useSyncState<Vaccine[]>(
+    KEYS.vaccines,
+    [],
+    fetchRemote
+  );
 
   const toggleVaccine = useCallback(
-    (id: string) => {
+    async (id: string) => {
       const next = value.map((v) => {
         if (v.id === id) {
           const isComp = v.status === "completed";
@@ -329,19 +556,57 @@ export function useVaccinations() {
         }
         return v;
       });
+      
       update(next);
+
+      // Async write to Supabase
+      const currentUser = firebaseAuth?.currentUser;
+      if (currentUser && isSupabaseConfigured && supabase) {
+        const item = next.find(v => v.id === id)!;
+        await supabase.from("vaccinations").update({
+          status: item.status,
+          completed_at: item.completedAt ? new Date(item.completedAt).toISOString() : null
+        }).eq("id", id);
+      }
     },
-    [value, update],
+    [value, update]
   );
 
   return { vaccines: value, toggleVaccine, hydrated };
 }
 
+// 6. VAULT DOCUMENTS HOOK
 export function useVaultDocuments() {
-  const { value, update, hydrated } = usePersisted<MedicalDocument[]>(KEYS.documents, MOCK_DOCUMENTS);
+  const fetchRemote = async (uid: string) => {
+    if (!supabase) return [];
+    
+    const { data: baby } = await supabase.from("babies").select("id").eq("parent_id", uid).single();
+    if (!baby) return [];
+
+    const { data } = await supabase
+      .from("documents")
+      .select("id, name, category, uploaded_at, doctor_name, file_size")
+      .eq("baby_id", baby.id);
+
+    if (!data) return [];
+    return data.map((d: any) => ({
+      id: d.id,
+      name: d.name,
+      category: d.category as MedicalDocument["category"],
+      uploadedAt: new Date(d.uploaded_at).getTime(),
+      doctorName: d.doctor_name || undefined,
+      fileSize: d.file_size || undefined
+    }));
+  };
+
+  const { value, update, hydrated } = useSyncState<MedicalDocument[]>(
+    KEYS.documents,
+    [],
+    fetchRemote
+  );
 
   const addDocument = useCallback(
-    (name: string, category: MedicalDocument["category"], doctorName?: string, fileSize = "1.5 MB") => {
+    async (name: string, category: MedicalDocument["category"], doctorName?: string, fileSize = "1.5 MB") => {
       const doc: MedicalDocument = {
         id: newId(),
         name,
@@ -350,24 +615,49 @@ export function useVaultDocuments() {
         doctorName,
         fileSize,
       };
+
       update([doc, ...value]);
+
+      // Async write to Supabase
+      const currentUser = firebaseAuth?.currentUser;
+      if (currentUser && isSupabaseConfigured && supabase) {
+        const { data: baby } = await supabase.from("babies").select("id").eq("parent_id", currentUser.uid).single();
+        if (baby) {
+          await supabase.from("documents").insert({
+            id: doc.id,
+            baby_id: baby.id,
+            name: doc.name,
+            category: doc.category,
+            uploaded_at: new Date(doc.uploadedAt).toISOString(),
+            doctor_name: doc.doctorName,
+            file_size: doc.fileSize
+          });
+        }
+      }
+
       return doc;
     },
-    [update, value],
+    [update, value]
   );
 
   const deleteDocument = useCallback(
-    (id: string) => {
+    async (id: string) => {
       update(value.filter((d) => d.id !== id));
+
+      // Async delete on Supabase
+      if (isSupabaseConfigured && supabase) {
+        await supabase.from("documents").delete().eq("id", id);
+      }
     },
-    [update, value],
+    [update, value]
   );
 
   return { documents: value, addDocument, deleteDocument, hydrated };
 }
 
+// 7. SYSTEM SETTINGS HOOK
 export function useSafeNestSettings() {
-  const { value, update, hydrated } = usePersisted<SafeNestSettings>(KEYS.settings, DEFAULT_SETTINGS);
+  const { value, update, hydrated } = useSyncState<SafeNestSettings>(KEYS.settings, DEFAULT_SETTINGS);
 
   const saveSettings = useCallback(
     (patch: Partial<SafeNestSettings>) => {
@@ -383,7 +673,7 @@ export function useSafeNestSettings() {
         }
       }
     },
-    [update, value],
+    [update, value]
   );
 
   useEffect(() => {
@@ -400,6 +690,7 @@ export function useSafeNestSettings() {
   return { settings: { ...DEFAULT_SETTINGS, ...value }, saveSettings, hydrated };
 }
 
+// RISK SCORES HOOK
 export function useRiskScores(logs: CareLog[], moods: MoodEntry[], profile: BabyProfile) {
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
@@ -407,7 +698,6 @@ export function useRiskScores(logs: CareLog[], moods: MoodEntry[], profile: Baby
   const todaysLogs = logs.filter((l) => l.at >= startOfDay.getTime());
   const medsGiven = todaysLogs.filter((l) => l.kind === "medicine");
   const diaperChanges = todaysLogs.filter((l) => l.kind === "diaper");
-  const lowMoodStreak = moods.length && moods[0]?.score <= 2;
 
   let babyScore: "Low" | "Medium" | "High" = "Low";
   let babyReason = "Baby is showing normal, active patterns.";
@@ -418,7 +708,7 @@ export function useRiskScores(logs: CareLog[], moods: MoodEntry[], profile: Baby
 
   if (medsGiven.length >= 3 && lastMed?.note?.toLowerCase().includes("fever")) {
     babyScore = "High";
-    babyReason = "High fever warning: Baby has required 3+ doses of paracetamol today. Monitor breathing closely.";
+    babyReason = "High fever warning: Baby has required 3+ doses of medicine today. Monitor breathing closely.";
   } else if (hrsSinceFeed > 6 && profile.ageMonths < 6) {
     babyScore = "High";
     babyReason = `Feeding gap exceeds 6 hours (${hrsSinceFeed.toFixed(1)} hrs). Offer feed now to prevent dehydration.`;
@@ -454,6 +744,7 @@ export function useRiskScores(logs: CareLog[], moods: MoodEntry[], profile: Baby
   };
 }
 
+// DAILY HEALTH SUMMARY HOOK
 export function useDailySummary(logs: CareLog[], moods: MoodEntry[], profile: BabyProfile) {
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);

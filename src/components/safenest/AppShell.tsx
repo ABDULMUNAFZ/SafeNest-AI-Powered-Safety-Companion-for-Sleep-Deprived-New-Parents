@@ -14,6 +14,8 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 import { useSafeNestSettings, useProfile } from "@/lib/safenest/store";
+import { useSafeNestAuth } from "@/lib/safenest/auth-context";
+import { LogOut } from "lucide-react";
 
 const LOCALIZED = {
   en: {
@@ -55,6 +57,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { settings } = useSafeNestSettings();
   const { profile } = useProfile();
+  const { user, signOut } = useSafeNestAuth();
   const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
@@ -138,6 +141,29 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Siren className="size-4 animate-pulse" />
             {dict.emergency}
           </Link>
+
+          {user && (
+            <div className="flex items-center gap-2 border border-border/80 bg-muted/40 pl-2 pr-1.5 py-1 rounded-full shrink-0">
+              {user.photoURL ? (
+                <img 
+                  src={user.photoURL} 
+                  alt={user.displayName || "User"} 
+                  className="size-7 rounded-full object-cover border border-primary/20"
+                />
+              ) : (
+                <span className="grid size-7 place-items-center rounded-full bg-primary/25 text-[10px] font-bold text-primary">
+                  {user.displayName?.charAt(0).toUpperCase() || "U"}
+                </span>
+              )}
+              <button
+                onClick={signOut}
+                title="Sign Out"
+                className="grid size-7 place-items-center rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 active:scale-95 transition-all cursor-pointer border-none bg-transparent"
+              >
+                <LogOut className="size-3.5" />
+              </button>
+            </div>
+          )}
         </div>
       </header>
 

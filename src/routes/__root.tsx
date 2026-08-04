@@ -12,6 +12,9 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportSafeNestError } from "../lib/safenest-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { SafeNestAuthProvider, useSafeNestAuth } from "../lib/safenest/auth-context";
+import { Onboarding } from "@/components/safenest/Onboarding";
+import { Loader2 } from "lucide-react";
 
 function NotFoundComponent() {
   return (
@@ -133,9 +136,29 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
-      <Toaster position="top-center" />
+      <SafeNestAuthProvider>
+        <AuthGate />
+        <Toaster position="top-center" />
+      </SafeNestAuthProvider>
     </QueryClientProvider>
   );
+}
+
+function AuthGate() {
+  const { user, loading, onboardingComplete } = useSafeNestAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3">
+        <Loader2 className="size-10 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground font-semibold">Connecting to SafeNest...</p>
+      </div>
+    );
+  }
+
+  if (!user || !onboardingComplete) {
+    return <Onboarding />;
+  }
+
+  return <Outlet />;
 }
