@@ -122,6 +122,10 @@ export const SafeNestAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Sign In with Google
   const signInWithGoogle = async () => {
     setLoading(true);
+    if (typeof window !== "undefined") {
+      console.log("[SafeNest debug signin] auth:", auth);
+      console.log("[SafeNest debug signin] googleProvider:", googleProvider);
+    }
     if (!isDemoMode && auth && googleProvider) {
       try {
         await signInWithPopup(auth, googleProvider);
