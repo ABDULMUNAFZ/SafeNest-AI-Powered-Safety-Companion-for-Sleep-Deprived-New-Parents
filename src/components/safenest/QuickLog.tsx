@@ -3,6 +3,7 @@ import { Baby, Droplets, Moon, Pill, Plus, X, Check } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { cn } from "@/lib/utils";
 import { speak } from "@/lib/safenest/speech";
 import { timeAgo, useCareLogs, type LogKind } from "@/lib/safenest/store";
 
@@ -50,19 +51,28 @@ export function QuickLog() {
                   setNote("");
                 }
               }}
-              className={`glass-card flex min-h-[104px] flex-col items-start justify-between rounded-2xl p-4 text-left transition-all ${
+              className={cn(
+                "glass-card flex min-h-[108px] flex-col items-start justify-between rounded-lg p-4 text-left border transition-all cursor-pointer shadow-sm relative overflow-hidden",
                 isSelected 
-                  ? "border-primary bg-primary/5 ring-2 ring-primary/25" 
-                  : "hover:border-primary/40"
-              }`}
+                  ? "bg-primary border-primary text-white" 
+                  : "bg-white border-border text-foreground hover:border-primary/60"
+              )}
             >
               <div className="flex w-full items-center justify-between">
-                <Icon className={`size-7 ${tone}`} />
-                {isSelected && <span className="size-2 rounded-full bg-primary animate-ping" />}
+                <Icon className={cn("size-6 transition-transform", isSelected ? "text-white" : tone)} />
+                {isSelected ? (
+                  <span className="size-1.5 rounded-full bg-white animate-ping" />
+                ) : (
+                  <span className="text-[9px] font-extrabold uppercase tracking-widest text-muted-foreground select-none">
+                    LOG
+                  </span>
+                )}
               </div>
-              <div className="mt-2">
-                <p className="font-display text-lg font-extrabold tracking-tight">{label}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{timeAgo(lastOf(kind)?.at)}</p>
+              <div className="mt-4">
+                <p className="font-display text-base font-black uppercase tracking-tight leading-none">{label}</p>
+                <p className={cn("text-[9px] font-bold mt-1.5", isSelected ? "text-white/80" : "text-muted-foreground")}>
+                  {timeAgo(lastOf(kind)?.at)}
+                </p>
               </div>
             </motion.button>
           );

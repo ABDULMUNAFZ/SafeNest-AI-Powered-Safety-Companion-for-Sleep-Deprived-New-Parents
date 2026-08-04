@@ -23,7 +23,7 @@ function getRecognition(): SpeechRecognitionLike | null {
   return recognition;
 }
 
-export function useVoiceInput(onFinal: (transcript: string) => void) {
+export function useVoiceInput(lang: string, onFinal: (transcript: string) => void) {
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [supported, setSupported] = useState(true);
@@ -48,6 +48,10 @@ export function useVoiceInput(onFinal: (transcript: string) => void) {
     }
     ref.current = recognition;
     setTranscript("");
+
+    // Set speech recognition locale dynamically to match the user's selected language
+    recognition.lang = lang === "ta" ? "ta-IN" : lang === "hi" ? "hi-IN" : "en-US";
+
     recognition.onresult = (event: any) => {
       let text = "";
       for (let i = 0; i < event.results.length; i++) text += event.results[i][0].transcript;
@@ -58,7 +62,7 @@ export function useVoiceInput(onFinal: (transcript: string) => void) {
     recognition.onend = () => setListening(false);
     recognition.start();
     setListening(true);
-  }, []);
+  }, [lang]);
 
   return { listening, transcript, supported, start, stop, setTranscript };
 }

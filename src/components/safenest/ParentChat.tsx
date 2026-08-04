@@ -293,7 +293,38 @@ export function ParentChat() {
     }, 1000);
   };
 
-  const voice = useVoiceInput((text) => send(text));
+  const voice = useVoiceInput(lang, (text) => send(text));
+
+  // High Fidelity Parametric Waveform Generator (Image 3)
+  const [pulseScale, setPulseScale] = useState(1);
+  useEffect(() => {
+    let interval: any;
+    if (voice.listening) {
+      interval = setInterval(() => {
+        setPulseScale(0.88 + Math.random() * 0.24); // dynamic scale variation
+      }, 100);
+    } else {
+      setPulseScale(1);
+    }
+    return () => clearInterval(interval);
+  }, [voice.listening]);
+
+  const generateWavyPath = (radius: number, amplitude: number, peaks: number, phase: number) => {
+    const points = [];
+    const cx = 100;
+    const cy = 100;
+    const steps = 90;
+    for (let i = 0; i <= steps; i++) {
+      const angle = (i / steps) * Math.PI * 2;
+      // Dual harmonics perturbation for complex organic waveforms
+      const wave = Math.sin(angle * peaks + phase) * 0.75 + Math.cos(angle * 3 - phase) * 0.25;
+      const r = radius + wave * amplitude;
+      const x = cx + Math.cos(angle) * r;
+      const y = cy + Math.sin(angle) * r;
+      points.push(`${i === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`);
+    }
+    return points.join(" ") + " Z";
+  };
 
   const handleSuggestClick = (q: string) => {
     send(q);
@@ -345,64 +376,157 @@ export function ParentChat() {
 
   return (
     <section className="space-y-6">
-      {/* Waveform Visualizer Centerpiece */}
-      <div className="glass-card rounded-[2rem] p-6 relative overflow-hidden flex flex-col items-center justify-center text-center">
-        <p className="text-xs font-bold uppercase tracking-widest text-primary">{ui.title}</p>
-        <h2 className="mt-1 font-display text-2xl font-extrabold tracking-tight sm:text-3xl">{ui.subtitle}</h2>
-
-        {/* Big Ripple Mic */}
-        <div className="relative mt-8 grid place-items-center">
-          {voice.listening && (
-            <>
-              <span className="mic-halo absolute size-44 rounded-full bg-primary/20 border border-primary/40" />
-              <span className="mic-halo absolute size-36 rounded-full bg-primary/10" />
-            </>
-          )}
-          <motion.button
-            whileTap={{ scale: 0.94 }}
-            onClick={() => (voice.listening ? voice.stop() : voice.start())}
-            className={`relative grid size-28 place-items-center rounded-full text-primary-foreground transition-all shadow-lg cursor-pointer ${
-              voice.listening ? "bg-destructive" : "bg-primary"
-            }`}
-            style={{ boxShadow: "var(--shadow-glow)" }}
-          >
-            {voice.listening ? <MicOff className="size-10" /> : <Mic className="size-10" />}
-          </motion.button>
+      {/* Siri Activation-style Voice Visualizer Centerpiece (Background removed) */}
+      <div className="text-white relative overflow-hidden flex flex-col items-center justify-center text-center min-h-[460px] w-full">
+        
+        {/* Top Tag & Status indicator */}
+        <div className="flex flex-col items-center">
+          <div className="bg-orange-500 text-white text-[10px] font-black uppercase tracking-wider px-4 py-1.5 rounded-full shadow-md">
+            AI Buddy
+          </div>
+          <div className="flex items-center gap-1.5 mt-2.5">
+            <span className="size-1.5 rounded-full bg-orange-400 animate-pulse" />
+            <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">
+              Online
+            </span>
+          </div>
         </div>
 
-        {/* Listening Soundwave CSS Bars */}
-        {voice.listening && (
-          <div className="flex gap-1 h-6 items-end mt-5">
-            {[1, 2, 3, 4, 5, 4, 3, 2, 3, 4, 5, 2, 1].map((val, idx) => (
-              <motion.div
-                key={idx}
-                animate={{ height: [8, val * 5, 8] }}
-                transition={{ repeat: Infinity, duration: 0.8, delay: idx * 0.05 }}
-                className="w-1 rounded-full bg-primary"
-              />
-            ))}
-          </div>
-        )}
+        {/* Siri Glowing Fluid Orb (High Fidelity Parametric Waves - Image 3) */}
+        <div className="relative my-8 grid place-items-center select-none w-full min-h-[260px]">
+          <motion.div
+            animate={{ scale: pulseScale }}
+            transition={{ type: "spring", stiffness: 120, damping: 12 }}
+            className="relative size-64 flex items-center justify-center"
+          >
+            {/* SVG Wavy concentric rings overlay */}
+            <svg viewBox="0 0 200 200" className="absolute inset-0 w-full h-full">
+              <defs>
+                <linearGradient id="siri-orange-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#ff5d22" />
+                  <stop offset="40%" stopColor="#f97316" />
+                  <stop offset="70%" stopColor="#f59e0b" />
+                  <stop offset="100%" stopColor="#ef4444" />
+                </linearGradient>
+              </defs>
 
-        {/* Status/Transcription text */}
-        <div className="mt-5 min-h-[3rem] max-w-xl flex items-center justify-center text-center px-4">
+              {/* Parametric Concentric Waves (Image 3) */}
+              {Array.from({ length: 14 }).map((_, idx) => {
+                const baseRadius = 46 + idx * 2.2;
+                const amplitude = voice.listening ? 4 + idx * 0.45 : 0.8;
+                const peaks = 6;
+                const phase = (idx * Math.PI) / 8 + (voice.listening ? 0.3 : 0);
+                const pathData = generateWavyPath(baseRadius, amplitude, peaks, phase);
+                
+                return (
+                  <path
+                    key={idx}
+                    d={pathData}
+                    fill="none"
+                    stroke="url(#siri-orange-gradient)"
+                    strokeWidth="1.2"
+                    opacity={voice.listening ? 0.85 - idx * 0.055 : 0.25 - idx * 0.015}
+                    className={`transition-all duration-300 ${
+                      voice.listening 
+                        ? `animate-[spin_${15 + idx * 2.5}s_linear_infinite]` 
+                        : ""
+                    }`}
+                    style={{
+                      transformOrigin: "100px 100px",
+                    }}
+                  />
+                );
+              })}
+            </svg>
+
+            {/* Central dark core circle with micro-dots (Image 3 + Image 1) */}
+            <div className="absolute size-24 rounded-full bg-neutral-950 border border-neutral-900 shadow-[0_10px_25px_rgba(0,0,0,0.8),inset_0_2px_10px_rgba(255,255,255,0.05)] flex items-center justify-center overflow-hidden">
+              <div className="absolute inset-0 siri-mesh opacity-20" />
+              {/* Core Pulsing Glow */}
+              <div className={`absolute size-20 rounded-full bg-orange-500/10 blur-md transition-all duration-500 ${
+                voice.listening ? "scale-125 opacity-40 animate-pulse" : "scale-100 opacity-0"
+              }`} />
+              
+              {/* Small micro pause or play symbol inside the core */}
+              {voice.listening ? (
+                <div className="flex gap-1.5 items-center justify-center z-10 scale-95 opacity-80">
+                  <span className="w-1.5 h-6 bg-white rounded-full animate-bounce [animation-duration:0.8s]" />
+                  <span className="w-1.5 h-6 bg-white rounded-full animate-bounce [animation-duration:0.8s] [animation-delay:0.2s]" />
+                </div>
+              ) : (
+                <Mic className="size-5 text-neutral-400 z-10 animate-pulse" />
+              )}
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Status/Transcription Text */}
+        <div className="min-h-[2.5rem] max-w-lg flex items-center justify-center text-center px-4 mb-8">
           {thinking ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground font-semibold">
-              <Loader2 className="size-4 animate-spin text-primary" /> {ui.thinking}
+            <div className="flex items-center gap-2 text-sm text-neutral-400 font-semibold">
+              <Loader2 className="size-4 animate-spin text-orange-500" /> {ui.thinking}
             </div>
           ) : voice.transcript ? (
-            <p className="text-base font-semibold italic text-foreground/90">
+            <p className="text-base font-semibold italic text-white/95">
               &ldquo;{voice.transcript}&rdquo;
             </p>
           ) : voice.listening ? (
-            <p className="text-sm text-muted-foreground font-semibold tracking-wide animate-pulse">{ui.listening}</p>
+            <p className="text-sm text-neutral-400 font-semibold tracking-wide animate-pulse">{ui.listening}</p>
           ) : (
-            <p className="text-sm text-muted-foreground font-semibold tracking-wide">
+            <p className="text-sm text-neutral-400 font-semibold tracking-wide">
               {lang === "ta" ? "மைக் பொத்தானை அழுத்தி பேசவும்" : lang === "hi" ? "माइक दबाएं और स्वाभाविक रूप से बोलें" : "Tap the microphone and describe a symptom or question."}
             </p>
           )}
         </div>
+
+        {/* Bottom Interactive Control Row (matches siri activation layout) */}
+        <div className="flex items-center justify-center gap-6 w-full mt-2">
+          {/* Left keyboard input focus */}
+          <button 
+            type="button" 
+            onClick={() => document.getElementById("text-input-field")?.focus()} 
+            className="grid size-12 place-items-center rounded-full bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white active:scale-95 transition-all cursor-pointer"
+            title="Type question"
+          >
+            <Send className="size-4" />
+          </button>
+
+          {/* Center concentric sound-wave Mic button */}
+          <div className="relative">
+            <motion.button
+              whileTap={{ scale: 0.94 }}
+              onClick={() => (voice.listening ? voice.stop() : voice.start())}
+              className={`relative z-20 grid size-16 place-items-center rounded-full text-white transition-all shadow-lg cursor-pointer ${
+                voice.listening ? "bg-red-500" : "bg-orange-500 hover:bg-orange-600"
+              }`}
+              style={{ boxShadow: "0 0 20px rgba(249, 115, 22, 0.3)" }}
+            >
+              {voice.listening ? <MicOff className="size-6" /> : <Mic className="size-6" />}
+            </motion.button>
+            {/* Concentric sound rings */}
+            {voice.listening && (
+              <>
+                <div className="absolute -inset-2 rounded-full border border-orange-500/40 animate-ping" />
+                <div className="absolute -inset-4 rounded-full border border-orange-500/20 animate-ping [animation-delay:0.3s]" />
+              </>
+            )}
+          </div>
+
+          {/* Right Reset conversation */}
+          <button 
+            type="button" 
+            onClick={() => {
+              stopSpeaking();
+              setMessages([{ id: "intro", role: "safenest", text: "Conversation reset. How can I help?" }]);
+            }}
+            className="grid size-12 place-items-center rounded-full bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white active:scale-95 transition-all cursor-pointer"
+            title="Reset Chat"
+          >
+            <RefreshCw className="size-4" />
+          </button>
+        </div>
       </div>
+
 
       {/* Conversation Chat Stream */}
       <div className="space-y-4">
@@ -481,6 +605,7 @@ export function ParentChat() {
         className="flex gap-2.5 mt-4"
       >
         <input
+          id="text-input-field"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder={ui.placeholder}

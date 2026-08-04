@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "motion/react";
 
 import { clockTime, timeAgo, useCareLogs, useProfile } from "@/lib/safenest/store";
 import { speak } from "@/lib/safenest/speech";
@@ -40,6 +41,22 @@ function EmergencyPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const triggerCall = (name: string, phone: string, e: React.MouseEvent<HTMLAnchorElement>) => {
+    const isMobile = typeof window !== "undefined" && 
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (!isMobile) {
+      e.preventDefault();
+      speak(`Simulating emergency call to ${name} at ${phone}.`);
+      toast.success(`Calling ${name}...`, {
+        description: `Simulated dialer on desktop: ${phone}`,
+        duration: 5000
+      });
+    } else {
+      toast.info(`Dialing ${name} (${phone})...`);
+    }
+  };
 
   if (!mounted) {
     return (
@@ -105,6 +122,7 @@ Preferred Hospital: ${profile.hospitalName}`;
         {/* Giant Red Dial Button */}
         <a
           href={`tel:${profile.emergencyNumber}`}
+          onClick={(e) => triggerCall("Emergency Services", profile.emergencyNumber, e)}
           className="flex min-h-[96px] items-center justify-center gap-3.5 rounded-[2.0rem] bg-destructive text-white hover:bg-destructive/95 active:scale-98 transition-all shadow-lg text-2xl font-black tracking-wide"
         >
           <Phone className="size-8 animate-pulse" /> Call {profile.emergencyNumber}
@@ -114,6 +132,7 @@ Preferred Hospital: ${profile.hospitalName}`;
         <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
           <a
             href={`tel:${profile.pediatricianPhone}`}
+            onClick={(e) => triggerCall(profile.pediatrician, profile.pediatricianPhone, e)}
             className="glass-card flex min-h-[80px] items-center gap-4 rounded-2xl px-5 text-base font-bold hover:border-primary/50 transition-all cursor-pointer"
           >
             <Stethoscope className="size-6 text-primary shrink-0" />
@@ -125,6 +144,7 @@ Preferred Hospital: ${profile.hospitalName}`;
           
           <a
             href={`tel:${profile.partnerPhone}`}
+            onClick={(e) => triggerCall(profile.partnerName, profile.partnerPhone, e)}
             className="glass-card flex min-h-[80px] items-center gap-4 rounded-2xl px-5 text-base font-bold hover:border-accent/50 transition-all cursor-pointer"
           >
             <Users className="size-6 text-accent shrink-0" />

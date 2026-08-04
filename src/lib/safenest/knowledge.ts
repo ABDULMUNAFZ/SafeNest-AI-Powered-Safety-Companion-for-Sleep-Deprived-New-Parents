@@ -10,7 +10,7 @@ export type KnowledgeAnswer = {
 export const KNOWLEDGE: KnowledgeAnswer[] = [
   {
     id: "sleep",
-    keywords: ["won't sleep", "not sleeping", "sleep", "nap", "bedtime"],
+    keywords: ["won't sleep", "not sleeping", "sleep", "nap", "bedtime", "தூங்க", "தூக்கம்", "தூங்கு", "सो", "नींद", "सोना"],
     question: "My baby won't sleep",
     answer:
       "Newborns sleep 14–17 hours across the day in short stretches, so broken nights are expected. Keep the room dark and cool, put your baby down drowsy but awake, and always place them on their back on a firm flat surface with no pillows or loose bedding.",
@@ -18,7 +18,7 @@ export const KNOWLEDGE: KnowledgeAnswer[] = [
   },
   {
     id: "burp",
-    keywords: ["burp", "wind", "gas"],
+    keywords: ["burp", "wind", "gas", "தட்ட", "ஏப்பம்", "டேப்பம்", "डकार", "गैस"],
     question: "When should I burp my baby?",
     answer:
       "Burp midway through a feed and again at the end, or whenever your baby pulls off, squirms, or seems uncomfortable. Hold them upright against your shoulder and pat gently for a minute or two — not every feed produces a burp.",
@@ -26,7 +26,7 @@ export const KNOWLEDGE: KnowledgeAnswer[] = [
   },
   {
     id: "breastfeeding-medicine",
-    keywords: ["breastfeed after", "medicine", "medication", "safe to breastfeed"],
+    keywords: ["breastfeed after", "medicine", "medication", "safe to breastfeed", "தாய்ப்பால்", "மருந்து", "दूध", "दवा", "औषधि"],
     question: "Can I breastfeed after taking medicine?",
     answer:
       "Many common medicines including paracetamol and ibuprofen are considered compatible with breastfeeding, but this depends on the exact drug and dose. Check the specific medicine with your pharmacist, doctor, or a lactation service before your next feed — do not stop feeding without advice.",
@@ -34,7 +34,7 @@ export const KNOWLEDGE: KnowledgeAnswer[] = [
   },
   {
     id: "teething",
-    keywords: ["teething", "teeth", "tooth"],
+    keywords: ["teething", "teeth", "tooth", "பல்", "பற்கள்", "முளைக்க", "दांत", "मसूड़े"],
     question: "When do babies start teething?",
     answer:
       "First teeth usually appear between 6 and 10 months, though anywhere from 3 to 12 months is normal. Offer a clean chilled teething ring and gently rub the gums. Teething does not cause high fever — check with a doctor if your baby has one.",
@@ -42,7 +42,7 @@ export const KNOWLEDGE: KnowledgeAnswer[] = [
   },
   {
     id: "fever",
-    keywords: ["fever", "temperature", "hot"],
+    keywords: ["fever", "temperature", "hot", "காய்ச்சல்", "சூடு", "வெப்பம்", "बुखार", "तापमान", "गर्म"],
     question: "What counts as a fever?",
     answer:
       "A temperature of 38°C (100.4°F) or above is a fever. In a baby under 3 months this always needs same-day medical assessment. For older babies, watch feeding, alertness, and wet diapers, and seek care if the fever lasts more than 48 hours or your baby seems unwell.",
@@ -50,7 +50,7 @@ export const KNOWLEDGE: KnowledgeAnswer[] = [
   },
   {
     id: "feeding-amount",
-    keywords: ["how much milk", "feeding", "how often feed", "feed frequency"],
+    keywords: ["how much milk", "feeding", "how often feed", "feed frequency", "பால்", "ஊட்ட", "உணவளிக்க", "दूध", "खिलाना", "खिलाएं"],
     question: "How often should my baby feed?",
     answer:
       "Newborns feed 8–12 times in 24 hours, roughly every 2–3 hours, on demand. Good signs are 6 or more wet diapers a day and steady weight gain. Exclusive breastfeeding is recommended for the first 6 months.",
@@ -58,7 +58,7 @@ export const KNOWLEDGE: KnowledgeAnswer[] = [
   },
   {
     id: "vaccines",
-    keywords: ["vaccine", "vaccination", "immunisation", "immunization", "shots"],
+    keywords: ["vaccine", "vaccination", "immunisation", "immunization", "shots", "தடுப்பூசி", "ஊசி", "टीका", "टीकाकरण"],
     question: "Are vaccines on schedule important?",
     answer:
       "Follow your country's routine immunisation schedule; the first doses usually start at 6 weeks or 2 months. Mild fever or a sore leg for a day afterwards is common. If a dose is missed, catch-up schedules exist — call your clinic rather than skipping it.",
@@ -66,7 +66,7 @@ export const KNOWLEDGE: KnowledgeAnswer[] = [
   },
   {
     id: "postpartum-mood",
-    keywords: ["sad", "depressed", "hopeless", "postpartum", "anxious", "crying", "overwhelmed"],
+    keywords: ["sad", "depressed", "hopeless", "postpartum", "anxious", "crying", "overwhelmed", "சோகமாக", "கவலையாக", "உடைந்த", "उदास", "चिंता", "रोना"],
     question: "I feel low all the time",
     answer:
       "Feeling low, anxious, or tearful after birth is common, and it is a health issue like any other — not a failure. If it lasts more than two weeks, affects daily life, or includes thoughts of harming yourself, contact your doctor, midwife, or a crisis line today. Support works, and asking for it is the strong move.",
@@ -74,7 +74,7 @@ export const KNOWLEDGE: KnowledgeAnswer[] = [
   },
   {
     id: "colic",
-    keywords: ["colic", "won't stop crying", "inconsolable", "keeps crying"],
+    keywords: ["colic", "won't stop crying", "inconsolable", "keeps crying", "அழுகிறது", "அழுது", "அழுகை", "रोता", "रोना", "चिल्लाना"],
     question: "My baby keeps crying",
     answer:
       "Work through the simple list: hunger, diaper, temperature, wind, and contact. Long crying spells that peak around 6 weeks can be normal colic. Never shake a baby — if you feel at the end of your rope, put your baby down safely in the cot and take a few minutes.",

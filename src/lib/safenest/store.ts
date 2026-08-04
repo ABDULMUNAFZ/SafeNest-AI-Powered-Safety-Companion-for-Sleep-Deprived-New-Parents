@@ -222,13 +222,12 @@ export function useCareLogs() {
     try {
       const q = query(
         collection(db, "care_logs"), 
-        where("parent_id", "==", uid), 
-        orderBy("at", "desc")
+        where("parent_id", "==", uid)
       );
       const querySnapshot = await getDocs(q);
       const logs: CareLog[] = [];
       querySnapshot.forEach((doc) => {
-        const d = doc.data();
+        const d = doc.data() as any;
         logs.push({
           id: doc.id,
           kind: d.kind as LogKind,
@@ -236,6 +235,7 @@ export function useCareLogs() {
           note: d.note || undefined
         });
       });
+      logs.sort((a, b) => b.at - a.at);
       return logs;
     } catch (e) {
       console.warn("Firestore care_logs query failed, using empty:", e);
@@ -302,13 +302,12 @@ export function useMoodLogs() {
     try {
       const q = query(
         collection(db, "mood_logs"), 
-        where("parent_id", "==", uid), 
-        orderBy("at", "desc")
+        where("parent_id", "==", uid)
       );
       const querySnapshot = await getDocs(q);
       const moods: MoodEntry[] = [];
       querySnapshot.forEach((doc) => {
-        const d = doc.data();
+        const d = doc.data() as any;
         moods.push({
           id: doc.id,
           at: typeof d.at === "string" ? new Date(d.at).getTime() : d.at,
@@ -318,6 +317,7 @@ export function useMoodLogs() {
           note: d.note || undefined
         });
       });
+      moods.sort((a, b) => b.at - a.at);
       return moods;
     } catch (e) {
       console.warn("Firestore mood_logs query failed, using empty:", e);
@@ -393,8 +393,8 @@ export function useProfile() {
 
       if (!profileDoc.exists() && !babyDoc.exists()) return DEFAULT_PROFILE;
 
-      const profileData = profileDoc.exists() ? profileDoc.data() : null;
-      const babyData = babyDoc.exists() ? babyDoc.data() : null;
+      const profileData = profileDoc.exists() ? (profileDoc.data() as any) : null;
+      const babyData = babyDoc.exists() ? (babyDoc.data() as any) : null;
 
       return {
         parentName: profileData?.parent_name || DEFAULT_PROFILE.parentName,
@@ -468,13 +468,12 @@ export function useGrowth() {
     try {
       const q = query(
         collection(db, "growth_records"), 
-        where("baby_id", "==", uid), 
-        orderBy("at", "desc")
+        where("baby_id", "==", uid)
       );
       const querySnapshot = await getDocs(q);
       const records: GrowthRecord[] = [];
       querySnapshot.forEach((doc) => {
-        const d = doc.data();
+        const d = doc.data() as any;
         records.push({
           id: doc.id,
           at: typeof d.at === "string" ? new Date(d.at).getTime() : d.at,
@@ -484,6 +483,7 @@ export function useGrowth() {
           headCircumferenceCm: d.head_circumference_cm || undefined
         });
       });
+      records.sort((a, b) => b.at - a.at);
       return records;
     } catch (e) {
       console.warn("Firestore growth_records query failed:", e);
@@ -584,7 +584,7 @@ export function useVaccines() {
       const querySnapshot = await getDocs(q);
       const vaccines: Vaccine[] = [];
       querySnapshot.forEach((doc) => {
-        const d = doc.data();
+        const d = doc.data() as any;
         vaccines.push({
           id: doc.id,
           name: d.name,
@@ -615,21 +615,29 @@ export function useVaccines() {
 
   const toggleVaccine = useCallback(
     async (vaccineId: string) => {
-      let nextStatus: "completed" | "scheduled" = "scheduled";
+      const target = value.find((v) => v.id === vaccineId);
+      if (!target) return;
+
+      const isCompleted = target.status === "completed";
+      const nextStatus: "completed" | "scheduled" | "overdue" = isCompleted ? "scheduled" : "completed";
+
       const nextValue = value.map((v) => {
         if (v.id === vaccineId) {
-          const isCompleted = v.status === "completed";
-          nextStatus = isCompleted ? "scheduled" : "completed";
-          return {
+          const updated: Vaccine = {
             ...v,
             status: nextStatus,
-            completedAt: isCompleted ? undefined : Date.now(),
           };
+          if (!isCompleted) {
+            updated.completedAt = Date.now();
+          } else {
+            delete updated.completedAt;
+          }
+          return updated;
         }
         return v;
       });
       update(nextValue);
-
+ 
       // Update individual vaccine in Firestore
       const currentUser = firebaseAuth?.currentUser;
       if (currentUser && db) {
@@ -657,7 +665,7 @@ export function useDocuments() {
       const querySnapshot = await getDocs(q);
       const docsList: MedicalDocument[] = [];
       querySnapshot.forEach((doc) => {
-        const d = doc.data();
+        const d = doc.data() as any;
         docsList.push({
           id: doc.id,
           name: d.name,

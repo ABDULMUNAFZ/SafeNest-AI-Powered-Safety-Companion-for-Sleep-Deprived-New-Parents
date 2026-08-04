@@ -131,113 +131,118 @@ export function MoodCheck() {
     <section className="space-y-6">
       
       {/* 1. EPDS Mood & Wellness Survey */}
-      <div className="glass-card rounded-[2rem] p-6 space-y-5">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-accent font-bold">Mental Wellness Journal</p>
-          <h2 className="mt-1 font-display text-2xl font-extrabold tracking-tight">How are you feeling, {profile.parentName}?</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Postpartum recovery is physically and emotionally demanding. Checking in helps spot stress trends early.
-          </p>
+      <div className="flex flex-col">
+        <div className="bg-white border-t border-x border-border px-3 py-1 rounded-t-lg text-[8px] font-black uppercase tracking-wider text-muted-foreground w-fit relative z-10 -mb-[1px]">
+          Mental Wellness Journal
         </div>
+        <div className="bg-white border border-border rounded-b-[1.5rem] rounded-tr-[1.5rem] p-6 shadow-sm relative z-0 space-y-5">
+          <div>
+            <h2 className="font-display text-2xl font-black uppercase tracking-tight text-neutral-950">How are you feeling, {profile.parentName}?</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Postpartum recovery is physically and emotionally demanding. Checking in helps spot stress trends early.
+            </p>
+          </div>
 
-        {/* Emojis selection */}
-        <div className="grid grid-cols-5 gap-2.5">
-          {FACES.map((face) => {
-            const isSelected = moodScore === face.score;
-            return (
-              <motion.button
-                key={face.score}
-                whileTap={{ scale: 0.94 }}
-                onClick={() => {
-                  setMoodScore(face.score);
-                  speak(face.label);
-                }}
-                className={`flex min-h-[96px] flex-col items-center justify-center gap-1.5 rounded-2xl border transition-all cursor-pointer ${
-                  isSelected 
-                    ? "bg-primary/10 border-primary ring-2 ring-primary/25 text-primary" 
-                    : `bg-muted/20 border-border/40 text-muted-foreground ${face.tone}`
-                }`}
-              >
-                <span className="text-3xl sm:text-4xl">{face.emoji}</span>
-                <span className="text-[10px] font-bold uppercase tracking-wider">{face.label}</span>
-              </motion.button>
-            );
-          })}
-        </div>
+          {/* Emojis selection */}
+          <div className="grid grid-cols-5 gap-2.5">
+            {FACES.map((face) => {
+              const isSelected = moodScore === face.score;
+              return (
+                <motion.button
+                  key={face.score}
+                  whileTap={{ scale: 0.94 }}
+                  onClick={() => {
+                    setMoodScore(face.score);
+                    speak(face.label);
+                  }}
+                  className={`flex min-h-[96px] flex-col items-center justify-center gap-1.5 rounded-2xl border transition-all cursor-pointer ${
+                    isSelected 
+                      ? "bg-neutral-950 border-neutral-950 text-white shadow-md scale-[1.02]" 
+                      : `bg-[#f4f4f5] border-neutral-200 text-muted-foreground ${face.tone}`
+                  }`}
+                >
+                  <span className="text-3xl sm:text-4xl">{face.emoji}</span>
+                  <span className="text-[10px] font-black uppercase tracking-wider">{face.label}</span>
+                </motion.button>
+              );
+            })}
+          </div>
 
-        {/* Sliders for Stress & Energy */}
-        <div className="grid gap-5 sm:grid-cols-2 pt-2">
-          {/* Stress Slider */}
-          <div className="space-y-2 bg-muted/25 border border-border/40 p-4 rounded-xl">
-            <div className="flex justify-between text-xs font-bold uppercase">
-              <span className="text-muted-foreground flex items-center gap-1"><Frown className="size-3.5 text-warning" /> Stress Level</span>
-              <span className="text-foreground">{stress} / 10</span>
+          {/* Sliders for Stress & Energy */}
+          <div className="grid gap-5 sm:grid-cols-2 pt-2">
+            {/* Stress Slider */}
+            <div className="space-y-2 bg-[#f4f4f5] border border-neutral-200 p-4 rounded-xl">
+              <div className="flex justify-between text-xs font-bold uppercase">
+                <span className="text-muted-foreground flex items-center gap-1"><Frown className="size-3.5 text-warning" /> Stress Level</span>
+                <span className="text-foreground">{stress} / 10</span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="10"
+                value={stress}
+                onChange={(e) => setStress(parseInt(e.target.value))}
+                className="w-full h-1 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-primary"
+              />
+              <div className="flex justify-between text-[9px] text-muted-foreground">
+                <span>Calm</span>
+                <span>Highly Stressed</span>
+              </div>
             </div>
-            <input
-              type="range"
-              min="1"
-              max="10"
-              value={stress}
-              onChange={(e) => setStress(parseInt(e.target.value))}
-              className="w-full h-1 bg-border rounded-lg appearance-none cursor-pointer accent-primary"
-            />
-            <div className="flex justify-between text-[9px] text-muted-foreground">
-              <span>Calm</span>
-              <span>Highly Stressed</span>
+
+            {/* Energy Slider */}
+            <div className="space-y-2 bg-[#f4f4f5] border border-neutral-200 p-4 rounded-xl">
+              <div className="flex justify-between text-xs font-bold uppercase">
+                <span className="text-muted-foreground flex items-center gap-1"><Smile className="size-3.5 text-success" /> Energy Level</span>
+                <span className="text-foreground">{energy} / 10</span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="10"
+                value={energy}
+                onChange={(e) => setEnergy(parseInt(e.target.value))}
+                className="w-full h-1 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-primary"
+              />
+              <div className="flex justify-between text-[9px] text-muted-foreground">
+                <span>Exhausted</span>
+                <span>Rested</span>
+              </div>
             </div>
           </div>
 
-          {/* Energy Slider */}
-          <div className="space-y-2 bg-muted/25 border border-border/40 p-4 rounded-xl">
-            <div className="flex justify-between text-xs font-bold uppercase">
-              <span className="text-muted-foreground flex items-center gap-1"><Smile className="size-3.5 text-success" /> Energy Level</span>
-              <span className="text-foreground">{energy} / 10</span>
-            </div>
+          {/* Text Area Note */}
+          <div className="flex flex-col gap-3 sm:flex-row">
             <input
-              type="range"
-              min="1"
-              max="10"
-              value={energy}
-              onChange={(e) => setEnergy(parseInt(e.target.value))}
-              className="w-full h-1 bg-border rounded-lg appearance-none cursor-pointer accent-primary"
+              id="mood-note-input"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Add comments on sleep, anxiety, or achievements... (optional)"
+              className="flex-1 h-12 rounded-xl border border-neutral-200 bg-[#f4f4f5] px-4 text-sm outline-none focus:ring-2 focus:ring-neutral-950 focus:bg-white transition-all"
             />
-            <div className="flex justify-between text-[9px] text-muted-foreground">
-              <span>Exhausted</span>
-              <span>Rested</span>
-            </div>
+            <button
+              onClick={() => (voice.listening ? voice.stop() : voice.start())}
+              className="flex h-12 items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-5 font-bold text-neutral-600 hover:text-neutral-950 hover:bg-[#f4f4f5] transition-all cursor-pointer"
+            >
+              {voice.listening ? "Listening..." : "Speak Note"}
+            </button>
           </div>
-        </div>
 
-        {/* Text Area Note */}
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <input
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Add comments on sleep, anxiety, or achievements... (optional)"
-            className="flex-1 min-h-[50px] rounded-xl border border-input bg-muted/25 px-4 text-sm outline-none focus:ring-2 focus:ring-ring"
-          />
+          {/* Suggestion responses */}
+          {noteMatch && (
+            <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 text-xs">
+              <p className="font-semibold">{noteMatch.answer}</p>
+              <p className="mt-1 text-[10px] text-muted-foreground">Reference: {noteMatch.source}</p>
+            </div>
+          )}
+
           <button
-            onClick={() => (voice.listening ? voice.stop() : voice.start())}
-            className="flex h-12 items-center justify-center gap-2 rounded-xl border border-border px-5 font-bold text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-all cursor-pointer"
+            onClick={recordCheckIn}
+            className="w-full flex h-12 items-center justify-center gap-1.5 rounded-full bg-neutral-950 font-bold text-white hover:bg-neutral-900 transition-all cursor-pointer text-sm shadow-sm active:scale-95"
           >
-            {voice.listening ? "Listening..." : "Speak Note"}
+            <Check className="size-4.5" /> Submit Wellness Check-in
           </button>
         </div>
-
-        {/* Suggestion responses */}
-        {noteMatch && (
-          <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 text-xs">
-            <p className="font-semibold">{noteMatch.answer}</p>
-            <p className="mt-1 text-[10px] text-muted-foreground">Reference: {noteMatch.source}</p>
-          </div>
-        )}
-
-        <button
-          onClick={recordCheckIn}
-          className="w-full flex h-12 items-center justify-center gap-1.5 rounded-xl bg-primary font-bold text-primary-foreground hover:bg-primary/95 transition-all cursor-pointer"
-        >
-          <Check className="size-4.5" /> Submit Wellness Check-in
-        </button>
       </div>
 
       {/* 2. Low Mood Escalation Nudge */}
@@ -265,129 +270,143 @@ export function MoodCheck() {
       )}
 
       {/* 3. Interactive Guided Breathing Exercise */}
-      <div className="glass-card rounded-[2rem] p-6 flex flex-col items-center text-center space-y-5 border-secondary/20">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-secondary font-bold">SafeNest Breathe</p>
-          <h3 className="font-display text-lg font-bold">Guided Breathing Helper</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            A 12-second cyclic breathing exercise (4s inhale, 4s hold, 4s exhale) to reduce heart rate and anxiety.
-          </p>
+      <div className="flex flex-col">
+        <div className="bg-white border-t border-x border-border px-3 py-1 rounded-t-lg text-[8px] font-black uppercase tracking-wider text-muted-foreground w-fit relative z-10 -mb-[1px]">
+          SafeNest Breathe
         </div>
-
-        {/* Breathing Circle Visualizer */}
-        <div className="h-44 w-full grid place-items-center relative">
-          <div 
-            className={`size-20 rounded-full border border-secondary/30 flex items-center justify-center transition-all ${
-              isBreathing ? "breathing-circle" : "bg-secondary/10"
-            }`}
-          >
-            <Wind className="size-8 text-secondary" />
+        <div className="bg-white border border-border rounded-b-[1.5rem] rounded-tr-[1.5rem] p-6 shadow-sm relative z-0 flex flex-col items-center text-center space-y-5">
+          <div>
+            <h3 className="font-display text-lg font-black uppercase tracking-tight text-neutral-950">Guided Breathing Helper</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              A 12-second cyclic breathing exercise (4s inhale, 4s hold, 4s exhale) to reduce heart rate and anxiety.
+            </p>
           </div>
-          
-          {isBreathing && (
-            <div className="absolute bottom-0 text-sm font-bold capitalize text-secondary animate-pulse">
-              {breathePhase} ({breatheSeconds % 4 + 1}s)
-            </div>
-          )}
-        </div>
 
-        <button
-          onClick={() => {
-            setIsBreathing(!isBreathing);
-            speak(isBreathing ? "Breathing session ended." : "Inhale deeply as the circle expands...");
-          }}
-          className="flex h-11 items-center gap-1.5 rounded-xl bg-secondary px-6 font-bold text-secondary-foreground hover:bg-secondary/95 transition-all cursor-pointer shadow-md"
-        >
-          {isBreathing ? (
-            <>
-              <Square className="size-4" /> Stop Breathing
-            </>
-          ) : (
-            <>
-              <Play className="size-4" /> Start Breathing Break
-            </>
-          )}
-        </button>
+          {/* Breathing Circle Visualizer */}
+          <div className="h-44 w-full grid place-items-center relative select-none">
+            <div 
+              className={`size-20 rounded-full border border-neutral-200 flex items-center justify-center transition-all ${
+                isBreathing ? "breathing-circle" : "bg-neutral-50"
+              }`}
+            >
+              <Wind className="size-8 text-neutral-600" />
+            </div>
+            
+            {isBreathing && (
+              <div className="absolute bottom-0 text-sm font-bold capitalize text-neutral-800 animate-pulse">
+                {breathePhase} ({breatheSeconds % 4 + 1}s)
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={() => {
+              setIsBreathing(!isBreathing);
+              speak(isBreathing ? "Breathing session ended." : "Inhale deeply as the circle expands...");
+            }}
+            className="flex h-11 items-center gap-1.5 rounded-full bg-[#d4fc34] px-6 font-bold text-neutral-950 hover:bg-[#c2eb23] transition-all cursor-pointer shadow-sm active:scale-95 text-xs"
+          >
+            {isBreathing ? (
+              <>
+                <Square className="size-4" /> Stop Breathing
+              </>
+            ) : (
+              <>
+                <Play className="size-4" /> Start Breathing Break
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* 4. Postpartum Hydration Companion */}
-      <div className="glass-card rounded-[2rem] p-6 space-y-4">
-        <div className="flex justify-between items-center">
-          <div>
-            <h3 className="font-display text-lg font-bold flex items-center gap-2">
-              <Droplets className="size-5 text-primary animate-pulse" /> Postpartum Hydration Tracker
-            </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Hydration supports healing and milk volume. Target: 2,500 ml daily.
-            </p>
-          </div>
-          <span className="rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-xs font-bold text-primary">
-            {totalWaterMl} / 2500 ml
-          </span>
+      <div className="flex flex-col">
+        <div className="bg-white border-t border-x border-border px-3 py-1 rounded-t-lg text-[8px] font-black uppercase tracking-wider text-muted-foreground w-fit relative z-10 -mb-[1px]">
+          Parent Hydration
         </div>
+        <div className="bg-white border border-border rounded-b-[1.5rem] rounded-tr-[1.5rem] p-6 shadow-sm relative z-0 space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="font-display text-lg font-black uppercase tracking-tight text-neutral-950 flex items-center gap-2">
+                <Droplets className="size-5 text-primary animate-pulse" /> Postpartum Hydration Tracker
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Hydration supports healing and milk volume. Target: 2,500 ml daily.
+              </p>
+            </div>
+            <span className="rounded-full bg-neutral-950 border border-neutral-950 px-4 py-1.5 text-xs font-black text-[#d4fc34] shadow-sm">
+              {totalWaterMl} / 2500 ml
+            </span>
+          </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <button
-            onClick={() => handleLogWater(250)}
-            className="flex h-14 flex-col items-center justify-center border border-border/60 rounded-xl hover:border-primary/50 bg-muted/10 transition-all cursor-pointer"
-          >
-            <Coffee className="size-4 text-primary" />
-            <span className="text-xs font-bold mt-1">+250 ml (Cup)</span>
-          </button>
-          <button
-            onClick={() => handleLogWater(500)}
-            className="flex h-14 flex-col items-center justify-center border border-border/60 rounded-xl hover:border-primary/50 bg-muted/10 transition-all cursor-pointer"
-          >
-            <Droplets className="size-4 text-primary" />
-            <span className="text-xs font-bold mt-1">+500 ml (Bottle)</span>
-          </button>
-          <button
-            onClick={() => handleLogWater(750)}
-            className="flex h-14 flex-col items-center justify-center border border-border/60 rounded-xl hover:border-primary/50 bg-muted/10 transition-all cursor-pointer"
-          >
-            <Droplets className="size-4.5 text-primary" />
-            <span className="text-xs font-bold mt-1">+750 ml (Large)</span>
-          </button>
-          <button
-            onClick={() => handleLogWater(1000)}
-            className="flex h-14 flex-col items-center justify-center border border-border/60 rounded-xl hover:border-primary/50 bg-muted/10 transition-all cursor-pointer"
-          >
-            <Droplets className="size-5 text-primary" />
-            <span className="text-xs font-bold mt-1">+1.0 L (Flask)</span>
-          </button>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <button
+              onClick={() => handleLogWater(250)}
+              className="flex h-14 flex-col items-center justify-center border border-neutral-200 rounded-xl hover:border-neutral-950 bg-white transition-all cursor-pointer shadow-sm"
+            >
+              <Coffee className="size-4 text-primary" />
+              <span className="text-xs font-bold mt-1 text-neutral-755">+250 ml (Cup)</span>
+            </button>
+            <button
+              onClick={() => handleLogWater(500)}
+              className="flex h-14 flex-col items-center justify-center border border-neutral-200 rounded-xl hover:border-neutral-950 bg-white transition-all cursor-pointer shadow-sm"
+            >
+              <Droplets className="size-4 text-primary" />
+              <span className="text-xs font-bold mt-1 text-neutral-755">+500 ml (Bottle)</span>
+            </button>
+            <button
+              onClick={() => handleLogWater(750)}
+              className="flex h-14 flex-col items-center justify-center border border-neutral-200 rounded-xl hover:border-neutral-950 bg-white transition-all cursor-pointer shadow-sm"
+            >
+              <Droplets className="size-4.5 text-primary" />
+              <span className="text-xs font-bold mt-1 text-neutral-755">+750 ml (Large)</span>
+            </button>
+            <button
+              onClick={() => handleLogWater(1000)}
+              className="flex h-14 flex-col items-center justify-center border border-neutral-200 rounded-xl hover:border-neutral-950 bg-white transition-all cursor-pointer shadow-sm"
+            >
+              <Droplets className="size-5 text-primary" />
+              <span className="text-xs font-bold mt-1 text-neutral-755">+1.0 L (Flask)</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* 5. Wellbeing Trends Charts */}
       {moods.length > 0 && (
-        <div className="glass-card rounded-[2rem] p-6 space-y-4">
-          <div>
-            <h3 className="font-display text-lg font-bold flex items-center gap-2">
-              <TrendingUp className="size-5 text-primary" /> Wellbeing &amp; Stress Trend
-            </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Weekly historical chart of stress vs. mood index.
-            </p>
+        <div className="flex flex-col">
+          <div className="bg-white border-t border-x border-border px-3 py-1 rounded-t-lg text-[8px] font-black uppercase tracking-wider text-muted-foreground w-fit relative z-10 -mb-[1px]">
+            Wellness Trend
           </div>
+          <div className="bg-white border border-border rounded-b-[1.5rem] rounded-tr-[1.5rem] p-6 shadow-sm relative z-0 space-y-4">
+            <div>
+              <h3 className="font-display text-lg font-black uppercase tracking-tight text-neutral-950 flex items-center gap-2">
+                <TrendingUp className="size-5 text-primary" /> Wellbeing &amp; Stress Trend
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Weekly historical chart of stress vs. mood index.
+              </p>
+            </div>
 
-          <div className="h-48 w-full pr-4 text-[10px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                <XAxis dataKey="date" stroke="var(--color-muted-foreground)" />
-                <YAxis domain={[0, 10]} stroke="var(--color-muted-foreground)" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: "var(--color-card)", 
-                    borderColor: "var(--color-border)",
-                    borderRadius: "1rem",
-                    color: "var(--color-foreground)"
-                  }} 
-                />
-                <Bar dataKey="Mood" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Stress" fill="var(--color-warning)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="h-48 w-full pr-4 text-[10px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                  <XAxis dataKey="date" stroke="var(--color-muted-foreground)" />
+                  <YAxis domain={[0, 10]} stroke="var(--color-muted-foreground)" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: "var(--color-card)", 
+                      borderColor: "var(--color-border)",
+                      borderRadius: "1rem",
+                      color: "var(--color-foreground)"
+                    }} 
+                  />
+                  <Bar dataKey="Mood" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Stress" fill="var(--color-warning)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
       )}

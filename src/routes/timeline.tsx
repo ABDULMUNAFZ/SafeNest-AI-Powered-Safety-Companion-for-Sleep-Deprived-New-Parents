@@ -8,7 +8,8 @@ import {
   Sparkles, 
   Trash2, 
   Filter, 
-  Calendar 
+  Calendar,
+  ArrowUpRight
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -48,7 +49,7 @@ function partOfDay(at: number) {
 }
 
 function TimelinePage() {
-  const { logs, replace } = useCareLogs();
+  const { logs, deleteLog } = useCareLogs();
   const { moods } = useMoods();
   const { profile } = useProfile();
   
@@ -71,11 +72,13 @@ function TimelinePage() {
   const moodToday = moods.find((m) => m.at >= startOfDay.getTime());
 
   const handleDeleteLog = (id: string) => {
-    const nextLogs = logs.filter(l => l.id !== id);
-    replace(nextLogs);
-    toast.success("Log entry removed", {
-      description: "Care record deleted successfully."
-    });
+    const logToDelete = logs.find(l => l.id === id);
+    if (logToDelete) {
+      deleteLog(logToDelete);
+      toast.success("Log entry removed", {
+        description: "Care record deleted successfully."
+      });
+    }
   };
 
   if (!mounted) {
@@ -98,28 +101,29 @@ function TimelinePage() {
           <QuickLog />
         </section>
 
-        {/* Today's Counts Summary */}
-        <section className="glass-card rounded-[2rem] p-6 border-border/60">
-          <div className="flex items-center gap-2 text-xs uppercase tracking-widest font-bold text-accent">
-            <Sparkles className="size-4 animate-pulse" /> Daily Clinical Metrics
+        {/* Today's Counts Summary Mockup Cards */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="font-display text-2xl font-black tracking-tight uppercase">
+                {profile.babyName}&apos;s Day
+              </h1>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Log activity stats on {new Date().toLocaleDateString([], { day: "numeric", month: "long" })}
+              </p>
+            </div>
           </div>
-          <h1 className="mt-1 font-display text-3xl font-extrabold tracking-tight">
-            {profile.babyName}&apos;s Day
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Log activity stats on {new Date().toLocaleDateString([], { day: "numeric", month: "long" })}
-          </p>
 
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Stat label="Feedings" value={count("fed")} icon={Baby} tone="text-primary bg-primary/5" />
-            <Stat label="Naps" value={count("slept")} icon={Moon} tone="text-secondary bg-secondary/5" />
-            <Stat label="Diapers" value={count("diaper")} icon={Droplets} tone="text-accent bg-accent/5" />
-            <Stat label="Medications" value={count("medicine")} icon={Pill} tone="text-success bg-success/5" />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Stat label="Feedings" value={count("fed")} icon={Baby} variant="lime" />
+            <Stat label="Sleep Naps" value={count("slept")} icon={Moon} variant="purple" />
+            <Stat label="Diapers" value={count("diaper")} icon={Droplets} variant="yellow" />
+            <Stat label="Medicines" value={count("medicine")} icon={Pill} variant="white" />
           </div>
         </section>
 
         {/* Filter Categories Bar */}
-        <div className="flex items-center justify-between border-b border-border/50 pb-2">
+        <div className="flex items-center justify-between border-b border-border/50 pb-2 mt-4">
           <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase">
             <Filter className="size-3.5" /> Filter Timeline
           </div>
@@ -131,7 +135,7 @@ function TimelinePage() {
                 onClick={() => setFilter(cat)}
                 className={`rounded-full px-3 py-1 text-xs font-bold uppercase border transition-all cursor-pointer ${
                   filter === cat 
-                    ? "bg-primary/10 text-primary border-primary/20" 
+                    ? "bg-neutral-950 text-white border-neutral-900" 
                     : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -142,43 +146,48 @@ function TimelinePage() {
         </div>
 
         {/* Vertical timeline grouped by part of day */}
-        <section className="space-y-4">
+        <section className="space-y-6">
           {groups.map((group) => {
             const entries = filteredToday.filter((log) => partOfDay(log.at) === group);
             if (!entries.length) return null;
 
             return (
-              <div key={group} className="glass-card rounded-[2rem] p-6 border-border/40">
-                <h2 className="font-display text-lg font-bold tracking-tight text-foreground border-b border-border/40 pb-2 mb-4">
-                  {group}
-                </h2>
+              <div key={group} className="space-y-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="grid size-5 place-items-center rounded-full bg-neutral-950 text-[#d4fc34] text-[9px] font-black">
+                    {entries.length}
+                  </span>
+                  <h2 className="font-display text-sm font-black tracking-tight text-foreground uppercase">
+                    {group} Activities
+                  </h2>
+                </div>
                 
-                <div className="relative pl-4 border-l border-border/60 ml-2 space-y-4">
+                <div className="relative pl-4 border-l border-neutral-200 ml-2.5 space-y-3">
                   {entries.map((log) => {
                     const meta = META[log.kind];
                     const Icon = meta.icon;
                     return (
                       <div key={log.id} className="relative flex items-start gap-4">
                         {/* Dot indicator */}
-                        <div className="absolute -left-[27px] top-1.5 grid size-5 place-items-center rounded-full bg-background border-2 border-border/80">
+                        <div className="absolute -left-[27px] top-1.5 grid size-5 place-items-center rounded-full bg-background border border-neutral-300">
                           <span className={`size-1.5 rounded-full ${meta.tone} bg-current`} />
                         </div>
 
-                        {/* Event Card */}
-                        <div className="flex-1 rounded-2xl bg-muted/20 border border-border/40 p-4 flex items-center justify-between gap-4">
-                          <div className="flex items-center gap-3">
-                            <div className={`grid size-9 shrink-0 place-items-center rounded-xl border ${meta.bg}`}>
+                        {/* Event Card (mockup list item style) */}
+                        <div className="flex-1 rounded-[1.5rem] bg-white border border-neutral-200 p-4 flex items-center justify-between gap-4 shadow-sm hover:border-neutral-300 transition-all">
+                          <div className="flex items-start gap-3">
+                            <div className={`grid size-9 shrink-0 place-items-center rounded-xl border ${meta.bg} mt-0.5`}>
                               <Icon className={`size-4.5 ${meta.tone}`} />
                             </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-foreground text-sm">{meta.label}</span>
-                                <span className="text-[10px] text-muted-foreground font-semibold">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-extrabold text-neutral-950 text-sm">{meta.label}</span>
+                                <span className="bg-neutral-100 text-neutral-600 border border-neutral-200 text-[8px] font-black uppercase px-2.5 py-0.5 rounded-full">
                                   {clockTime(log.at)}
                                 </span>
                               </div>
                               {log.note && (
-                                <p className="text-xs text-muted-foreground mt-1 italic leading-normal">
+                                <p className="text-xs text-muted-foreground mt-1.5 italic leading-normal">
                                   &ldquo;{log.note}&rdquo;
                                 </p>
                               )}
@@ -187,7 +196,7 @@ function TimelinePage() {
 
                           <button
                             onClick={() => handleDeleteLog(log.id)}
-                            className="rounded-lg p-2 border border-border text-muted-foreground hover:bg-destructive/15 hover:text-destructive hover:border-destructive/30 transition-all cursor-pointer"
+                            className="rounded-full p-2 border border-neutral-200 text-neutral-400 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all cursor-pointer shrink-0"
                             title="Delete log entry"
                           >
                             <Trash2 className="size-3.5" />
@@ -202,9 +211,9 @@ function TimelinePage() {
           })}
 
           {filteredToday.length === 0 && (
-            <div className="rounded-[2rem] bg-muted/20 p-8 text-center text-sm border border-border/50">
+            <div className="rounded-[2rem] bg-white p-8 text-center text-sm border border-neutral-200 shadow-sm">
               <Calendar className="size-8 text-primary mx-auto opacity-70 mb-2" />
-              <p className="font-semibold">Timeline Empty</p>
+              <p className="font-semibold text-neutral-950">Timeline Empty</p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 No logs fit the selected filter for today.
               </p>
@@ -220,20 +229,35 @@ function Stat({
   label, 
   value, 
   icon: Icon,
-  tone 
+  variant
 }: { 
   label: string; 
   value: number; 
   icon: typeof Baby;
-  tone: string 
+  variant: "lime" | "purple" | "yellow" | "white"
 }) {
+  const bgClass = 
+    variant === "lime" ? "bg-[#d4fc34] text-neutral-950 border-neutral-950" :
+    variant === "purple" ? "bg-[#c084fc] text-neutral-950 border-neutral-950" :
+    variant === "yellow" ? "bg-[#fef08a] text-neutral-950 border-neutral-950" :
+    "bg-white text-neutral-950 border-neutral-200";
+
   return (
-    <div className={`rounded-2xl border border-border/40 p-4 ${tone}`}>
-      <div className="flex items-center justify-between">
-        <span className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">{label}</span>
-        <Icon className="size-4 opacity-75" />
+    <div className={`relative border rounded-[1.5rem] rounded-tr-none p-5 flex flex-col justify-between min-h-[116px] shadow-sm overflow-hidden ${bgClass}`}>
+      {/* Top right diagonal arrow circle */}
+      <div className="absolute top-2.5 right-2.5 size-6 rounded-full bg-neutral-950 text-white flex items-center justify-center border border-neutral-800">
+        <ArrowUpRight className="size-3" />
       </div>
-      <p className="font-display text-3xl font-black mt-2 text-foreground tracking-tight">{value}</p>
+
+      <div className="flex flex-col">
+        <span className="text-[9px] font-black uppercase tracking-wider opacity-80">{label}</span>
+        <p className="font-display text-3xl font-black mt-2 tracking-tighter leading-none">{value}</p>
+      </div>
+
+      <div className="flex items-center gap-1 mt-2">
+        <Icon className="size-3.5 opacity-60" />
+        <span className="text-[8px] font-bold uppercase tracking-wide opacity-60">TODAY</span>
+      </div>
     </div>
   );
 }
