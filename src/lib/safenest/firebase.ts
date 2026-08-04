@@ -4,6 +4,7 @@ import {
   initializeAuth, 
   browserLocalPersistence, 
   browserSessionPersistence, 
+  browserPopupRedirectResolver,
   GoogleAuthProvider,
   signInWithPopup,
   signOut as firebaseSignOut,
@@ -48,7 +49,8 @@ let initializedAuth = null;
 if (app) {
   try {
     initializedAuth = initializeAuth(app, {
-      persistence: [browserLocalPersistence, browserSessionPersistence]
+      persistence: [browserLocalPersistence, browserSessionPersistence],
+      popupRedirectResolver: browserPopupRedirectResolver
     });
   } catch (e) {
     // If already initialized, get the existing instance

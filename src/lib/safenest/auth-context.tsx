@@ -71,8 +71,8 @@ export const SafeNestAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [loading, setLoading] = useState(true);
   const [onboardingComplete, setOnboardingComplete] = useState(false);
 
-  // Check if both Firebase and Supabase are configured. If not, run in Demo Mode
-  const isDemoMode = !isFirebaseConfigured || !isSupabaseConfigured;
+  // Check if Firebase is configured. If not, run in Demo Mode
+  const isDemoMode = !isFirebaseConfigured;
 
   // Listen for Authentication state changes
   useEffect(() => {
