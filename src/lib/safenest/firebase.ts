@@ -11,6 +11,11 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+if (typeof window !== "undefined") {
+  console.log("[SafeNest Auth debug] Loaded API Key:", firebaseConfig.apiKey);
+  console.log("[SafeNest Auth debug] isFirebaseConfigured:", Boolean(firebaseConfig.apiKey && firebaseConfig.authDomain));
+}
+
 // Check if Firebase config is fully provided
 export const isFirebaseConfigured = Boolean(
   firebaseConfig.apiKey && 
