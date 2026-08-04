@@ -63,11 +63,11 @@ export function useVoiceInput(onFinal: (transcript: string) => void) {
   return { listening, transcript, supported, start, stop, setTranscript };
 }
 
-export function speak(text: string) {
+export function speak(text: string, rate = 0.95) {
   if (typeof window === "undefined" || !("speechSynthesis" in window) || !text) return;
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = 0.95;
+  utterance.rate = rate;
   window.speechSynthesis.speak(utterance);
 }
 

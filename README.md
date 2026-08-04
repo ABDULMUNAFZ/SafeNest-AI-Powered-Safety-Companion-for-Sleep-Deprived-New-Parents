@@ -1,16 +1,16 @@
-# Nesta Care
+# SafeNest
 
 PROJECT REQUIREMENT DOCUMENT
 
 Project Name
 
-NESTA AI
+SafeNest AI
 
 The Intelligent Postpartum Safety Companion
 
 Project Overview
 
-Develop a modern, AI-powered healthcare web application called NESTA AI, an intelligent postpartum safety companion designed specifically for new parents experiencing sleep deprivation, mental fatigue, emotional stress, and cognitive overload during the first year after childbirth. Unlike conventional baby-care or parenting applications that primarily focus on growth tracking and milestone recording, this platform is designed around one critical problem: helping exhausted parents make safer decisions while reducing the risk of mistakes caused by sleep deprivation.
+Develop a modern, AI-powered healthcare web application called SafeNest AI, an intelligent postpartum safety companion designed specifically for new parents experiencing sleep deprivation, mental fatigue, emotional stress, and cognitive overload during the first year after childbirth. Unlike conventional baby-care or parenting applications that primarily focus on growth tracking and milestone recording, this platform is designed around one critical problem: helping exhausted parents make safer decisions while reducing the risk of mistakes caused by sleep deprivation.
 
 The primary objective of this application is to provide real-time assistance through voice interaction, intelligent reminders, emotional wellbeing monitoring, emergency guidance, and simplified baby-care tracking. Every interaction within the application must be carefully designed to minimize cognitive effort. Users should be able to complete important actions using minimal thinking, minimal reading, and as few taps as possible. The interface should feel calm, supportive, trustworthy, and emotionally reassuring rather than technical or clinical.
 
@@ -20,11 +20,11 @@ Problem Statement
 
 Research shows that new parents frequently experience severe sleep deprivation during the postpartum period. Lack of sleep significantly reduces attention span, memory, decision-making ability, and emotional stability. As a result, parents often forget feeding schedules, medication timings, diaper changes, sleep routines, hydration, and even important health symptoms that require medical attention. In addition, postpartum depression often goes unnoticed because many parents dismiss emotional changes as normal exhaustion.
 
-Current parenting applications are designed for organized users who have the time and energy to navigate multiple menus, forms, charts, and settings. They assume users are alert and attentive. In reality, exhausted parents require an interface specifically designed for impaired decision-making. NESTA AI addresses this gap by becoming a safety-first, voice-driven assistant that helps parents make informed decisions quickly while reducing mental workload.
+Current parenting applications are designed for organized users who have the time and energy to navigate multiple menus, forms, charts, and settings. They assume users are alert and attentive. In reality, exhausted parents require an interface specifically designed for impaired decision-making. SafeNest AI addresses this gap by becoming a safety-first, voice-driven assistant that helps parents make informed decisions quickly while reducing mental workload.
 
 Vision
 
-The vision of NESTA AI is to become an intelligent healthcare companion that actively supports both the baby and the parent. Rather than functioning as a passive tracking application, the system should continuously assist users by understanding voice commands, simplifying daily routines, identifying emotional distress, detecting emergencies, and providing calm guidance during stressful situations. The experience should resemble having a supportive healthcare assistant available twenty-four hours a day.
+The vision of SafeNest AI is to become an intelligent healthcare companion that actively supports both the baby and the parent. Rather than functioning as a passive tracking application, the system should continuously assist users by understanding voice commands, simplifying daily routines, identifying emotional distress, detecting emergencies, and providing calm guidance during stressful situations. The experience should resemble having a supportive healthcare assistant available twenty-four hours a day.
 
 Target Users
 
@@ -82,17 +82,17 @@ The application should be developed using React, TypeScript, Tailwind CSS, Frame
 
 Innovation Highlights
 
-NESTA AI differentiates itself by combining healthcare safety, artificial intelligence, accessible design, and emotional wellbeing into a unified platform. Unlike conventional parenting applications, it is specifically engineered for users experiencing severe sleep deprivation. Every interaction prioritizes clarity, simplicity, and safety. The combination of voice-first interaction, validated medication guidance, adaptive reminders, postpartum emotional monitoring, emergency detection, and caregiver support creates a solution that addresses both the physical and psychological challenges of early parenthood.
+SafeNest AI differentiates itself by combining healthcare safety, artificial intelligence, accessible design, and emotional wellbeing into a unified platform. Unlike conventional parenting applications, it is specifically engineered for users experiencing severe sleep deprivation. Every interaction prioritizes clarity, simplicity, and safety. The combination of voice-first interaction, validated medication guidance, adaptive reminders, postpartum emotional monitoring, emergency detection, and caregiver support creates a solution that addresses both the physical and psychological challenges of early parenthood.
 
-Rather than simply tracking baby activities, NESTA AI functions as an intelligent safety companion that actively assists families during one of the most demanding periods of their lives, making it a highly impactful, socially meaningful, and technically innovative solution suitable for healthcare innovation competitions and hackathons.
+Rather than simply tracking baby activities, SafeNest AI functions as an intelligent safety companion that actively assists families during one of the most demanding periods of their lives, making it a highly impactful, socially meaningful, and technically innovative solution suitable for healthcare innovation competitions and hackathons.
 
-COMPLETE MASTER PROMPT FOR LOVABLE
+COMPLETE MASTER PROMPT FOR SafeNest CARE
 
 Build a Premium AI Healthcare Web Application
 
 Project Name
 
-NESTA AI
+SafeNest AI
 
 Your Intelligent Postpartum Safety Companion
 
@@ -666,7 +666,7 @@ Professional healthcare aesthetics
 
 Hackathon Demo Flow
 
- User opens NESTA AI.
+ User opens SafeNest AI.
 
  Voice asks: "How can I help today?"
 
@@ -707,15 +707,7 @@ Performance Requirements
 
 make the project more good and enough hackathon winning concept
 
-This project was built with [Lovable](https://lovable.dev).
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/0198db20-3614-4cb0-a997-1d20cdbb4e21).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+This project is SafeNest, a clinical-grade digital health companion for postpartum caregivers.
 
 ## Development
 

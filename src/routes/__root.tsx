@@ -10,7 +10,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
+import { reportSafeNestError } from "../lib/safenest-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -39,7 +39,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    reportSafeNestError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
   return (
@@ -78,14 +78,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "NESTA AI — Intelligent Postpartum Safety Companion" },
+      { title: "SafeNest AI — Intelligent Postpartum Safety Companion" },
       {
         name: "description",
         content:
-          "NESTA AI helps sleep-deprived parents make safer decisions with voice-first care, validated infant dosage guidance and emergency support.",
+          "SafeNest AI helps sleep-deprived parents make safer decisions with voice-first care, validated infant dosage guidance and emergency support.",
       },
-      { name: "author", content: "NESTA AI" },
-      { property: "og:title", content: "NESTA AI — Postpartum Safety Companion" },
+      { name: "author", content: "SafeNest AI" },
+      { property: "og:title", content: "SafeNest AI — Postpartum Safety Companion" },
       {
         property: "og:description",
         content:

@@ -10,12 +10,7 @@
  * The @theme inline block maps CSS custom properties to Tailwind utility
  * classes (e.g. --color-primary -> bg-primary, text-primary).
  *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
- *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ * All colors use OKLCH format for premium, clinical-grade medical software look.
  */
 
 @theme inline {
@@ -67,59 +62,121 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-:root,
-.dark {
-  --radius: 1.5rem;
-  --background: oklch(0.145 0.004 285.8);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.21 0.006 285.9);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.21 0.006 285.9);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.655 0.148 260.5);
-  --primary-foreground: oklch(0.145 0.004 285.8);
-  --secondary: oklch(0.845 0.088 224.2);
-  --secondary-foreground: oklch(0.145 0.004 285.8);
-  --muted: oklch(0.27 0.008 286);
-  --muted-foreground: oklch(0.712 0.012 286);
-  --accent: oklch(0.78 0.072 300);
-  --accent-foreground: oklch(0.145 0.004 285.8);
-  --success: oklch(0.723 0.19 149.6);
-  --success-foreground: oklch(0.145 0.004 285.8);
-  --warning: oklch(0.855 0.176 91.6);
-  --warning-foreground: oklch(0.145 0.004 285.8);
-  --destructive: oklch(0.637 0.208 25.3);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.655 0.148 260.5);
-  --chart-1: oklch(0.655 0.148 260.5);
-  --chart-2: oklch(0.845 0.088 224.2);
-  --chart-3: oklch(0.723 0.19 149.6);
-  --chart-4: oklch(0.855 0.176 91.6);
-  --chart-5: oklch(0.78 0.072 300);
-  --sidebar: oklch(0.21 0.006 285.9);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.655 0.148 260.5);
-  --sidebar-primary-foreground: oklch(0.145 0.004 285.8);
-  --sidebar-accent: oklch(0.27 0.008 286);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.655 0.148 260.5);
+:root {
+  --radius: 1.25rem;
+  
+  /* Day Mode: Warm White, Pure White Cards, Soft Clinical Blue */
+  --background: oklch(0.985 0.003 70);
+  --foreground: oklch(0.18 0.012 250);
+  --card: oklch(1.0 0 0);
+  --card-foreground: oklch(0.18 0.012 250);
+  --popover: oklch(1.0 0 0);
+  --popover-foreground: oklch(0.18 0.012 250);
+  
+  --primary: oklch(0.55 0.12 250); /* Soft Medical Blue */
+  --primary-foreground: oklch(0.99 0.002 70);
+  --secondary: oklch(0.60 0.11 190); /* Soft Medical Teal */
+  --secondary-foreground: oklch(0.18 0.012 250);
+  
+  --muted: oklch(0.94 0.005 70);
+  --muted-foreground: oklch(0.45 0.01 250);
+  --accent: oklch(0.65 0.08 300); /* Lavender/Orchid Care */
+  --accent-foreground: oklch(0.18 0.012 250);
+  
+  --success: oklch(0.66 0.15 142); /* Success Green */
+  --success-foreground: oklch(0.99 0.002 70);
+  --warning: oklch(0.80 0.14 85); /* Warning Amber */
+  --warning-foreground: oklch(0.18 0.012 250);
+  --destructive: oklch(0.58 0.18 25); /* Danger Medical Red */
+  --destructive-foreground: oklch(0.99 0.002 70);
+  
+  --border: oklch(0.88 0.005 70);
+  --input: oklch(0.92 0.005 70);
+  --ring: oklch(0.55 0.12 250);
+  
+  --chart-1: oklch(0.55 0.12 250);
+  --chart-2: oklch(0.60 0.11 190);
+  --chart-3: oklch(0.66 0.15 142);
+  --chart-4: oklch(0.80 0.14 85);
+  --chart-5: oklch(0.65 0.08 300);
+  
+  --sidebar: oklch(1.0 0 0);
+  --sidebar-foreground: oklch(0.18 0.012 250);
+  --sidebar-primary: oklch(0.55 0.12 250);
+  --sidebar-primary-foreground: oklch(0.99 0.002 70);
+  --sidebar-accent: oklch(0.94 0.005 70);
+  --sidebar-accent-foreground: oklch(0.18 0.012 250);
+  --sidebar-border: oklch(0.88 0.005 70);
+  --sidebar-ring: oklch(0.55 0.12 250);
 
   --font-display: "Sora", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  
+  --gradient-calm: linear-gradient(
+    145deg,
+    color-mix(in oklab, var(--primary) 12%, transparent),
+    color-mix(in oklab, var(--secondary) 8%, transparent)
+  );
+  --gradient-halo: radial-gradient(
+    circle at 50% 20%,
+    color-mix(in oklab, var(--primary) 18%, transparent),
+    transparent 65%
+  );
+  --shadow-soft: 0 16px 40px -16px oklch(0.18 0.012 250 / 0.08);
+  --shadow-glow: 0 0 0 1px color-mix(in oklab, var(--primary) 20%, transparent),
+    0 16px 50px -16px color-mix(in oklab, var(--primary) 35%, transparent);
+}
+
+.dark {
+  /* Night Mode: Dark Navy, Deep Navy Cards */
+  --background: oklch(0.12 0.015 255);
+  --foreground: oklch(0.985 0.002 70);
+  --card: oklch(0.16 0.018 255);
+  --card-foreground: oklch(0.985 0.002 70);
+  --popover: oklch(0.16 0.018 255);
+  --popover-foreground: oklch(0.985 0.002 70);
+  
+  --primary: oklch(0.62 0.12 250);
+  --primary-foreground: oklch(0.12 0.015 255);
+  --secondary: oklch(0.68 0.11 190);
+  --secondary-foreground: oklch(0.12 0.015 255);
+  
+  --muted: oklch(0.20 0.015 255);
+  --muted-foreground: oklch(0.68 0.01 255);
+  --accent: oklch(0.70 0.08 300);
+  --accent-foreground: oklch(0.12 0.015 255);
+  
+  --success: oklch(0.72 0.13 142);
+  --success-foreground: oklch(0.12 0.015 255);
+  --warning: oklch(0.84 0.12 85);
+  --warning-foreground: oklch(0.12 0.015 255);
+  --destructive: oklch(0.62 0.17 25);
+  --destructive-foreground: oklch(0.985 0.002 70);
+  
+  --border: oklch(0.24 0.015 255);
+  --input: oklch(0.22 0.015 255);
+  --ring: oklch(0.62 0.12 250);
+  
+  --sidebar: oklch(0.16 0.018 255);
+  --sidebar-foreground: oklch(0.985 0.002 70);
+  --sidebar-primary: oklch(0.62 0.12 250);
+  --sidebar-primary-foreground: oklch(0.12 0.015 255);
+  --sidebar-accent: oklch(0.20 0.015 255);
+  --sidebar-accent-foreground: oklch(0.985 0.002 70);
+  --sidebar-border: oklch(0.24 0.015 255);
+  --sidebar-ring: oklch(0.62 0.12 250);
+
   --gradient-calm: linear-gradient(
     145deg,
     color-mix(in oklab, var(--primary) 22%, transparent),
     color-mix(in oklab, var(--accent) 14%, transparent)
   );
   --gradient-halo: radial-gradient(
-    circle at 50% 30%,
-    color-mix(in oklab, var(--primary) 40%, transparent),
-    transparent 70%
+    circle at 50% 20%,
+    color-mix(in oklab, var(--primary) 35%, transparent),
+    transparent 65%
   );
-  --shadow-soft: 0 24px 60px -24px oklch(0 0 0 / 0.8);
+  --shadow-soft: 0 24px 60px -24px oklch(0 0 0 / 0.6);
   --shadow-glow: 0 0 0 1px color-mix(in oklab, var(--primary) 30%, transparent),
     0 20px 70px -20px color-mix(in oklab, var(--primary) 55%, transparent);
 }
@@ -127,6 +184,7 @@
 @layer base {
   * {
     border-color: var(--color-border);
+    transition: background-color 0.25s ease, border-color 0.25s ease, color 0.15s ease;
   }
 
   body {
@@ -146,24 +204,47 @@
 }
 
 @utility glass-card {
-  background: color-mix(in oklab, var(--card) 78%, transparent);
-  backdrop-filter: blur(20px) saturate(140%);
+  background: color-mix(in oklab, var(--card) 85%, transparent);
+  backdrop-filter: blur(24px) saturate(140%);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-soft);
 }
 
-@keyframes nesta-pulse {
+@keyframes safenest-pulse {
   0%,
   100% {
     transform: scale(1);
-    opacity: 0.55;
+    opacity: 0.45;
   }
   50% {
-    transform: scale(1.18);
-    opacity: 0.12;
+    transform: scale(1.22);
+    opacity: 0.1;
   }
 }
 
 @utility mic-halo {
-  animation: nesta-pulse 2.4s ease-in-out infinite;
+  animation: safenest-pulse 2.2s ease-in-out infinite;
+}
+
+/* Breathing Helper Keyframes: Inhale 4s, Hold 4s, Exhale 4s */
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 20px 0 oklch(0.55 0.12 250 / 0.15);
+    background-color: color-mix(in oklab, var(--primary) 15%, transparent);
+  }
+  33% {
+    transform: scale(1.55);
+    box-shadow: 0 0 60px 20px oklch(0.68 0.11 190 / 0.4);
+    background-color: color-mix(in oklab, var(--secondary) 30%, transparent);
+  }
+  66% {
+    transform: scale(1.55);
+    box-shadow: 0 0 60px 20px oklch(0.68 0.11 190 / 0.4);
+    background-color: color-mix(in oklab, var(--secondary) 30%, transparent);
+  }
+}
+
+@utility breathing-circle {
+  animation: breathe 12s ease-in-out infinite;
 }

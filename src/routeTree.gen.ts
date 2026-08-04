@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AssistantRouteImport } from './routes/assistant'
 import { Route as EmergencyRouteImport } from './routes/emergency'
 import { Route as FamilyRouteImport } from './routes/family'
+import { Route as MedicineRouteImport } from './routes/medicine'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as TimelineRouteImport } from './routes/timeline'
 import { Route as WellbeingRouteImport } from './routes/wellbeing'
 
@@ -36,6 +38,16 @@ const FamilyRoute = FamilyRouteImport.update({
   path: '/family',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MedicineRoute = MedicineRouteImport.update({
+  id: '/medicine',
+  path: '/medicine',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TimelineRoute = TimelineRouteImport.update({
   id: '/timeline',
   path: '/timeline',
@@ -52,6 +64,8 @@ export interface FileRoutesByFullPath {
   '/assistant': typeof AssistantRoute
   '/emergency': typeof EmergencyRoute
   '/family': typeof FamilyRoute
+  '/medicine': typeof MedicineRoute
+  '/profile': typeof ProfileRoute
   '/timeline': typeof TimelineRoute
   '/wellbeing': typeof WellbeingRoute
 }
@@ -60,6 +74,8 @@ export interface FileRoutesByTo {
   '/assistant': typeof AssistantRoute
   '/emergency': typeof EmergencyRoute
   '/family': typeof FamilyRoute
+  '/medicine': typeof MedicineRoute
+  '/profile': typeof ProfileRoute
   '/timeline': typeof TimelineRoute
   '/wellbeing': typeof WellbeingRoute
 }
@@ -69,21 +85,40 @@ export interface FileRoutesById {
   '/assistant': typeof AssistantRoute
   '/emergency': typeof EmergencyRoute
   '/family': typeof FamilyRoute
+  '/medicine': typeof MedicineRoute
+  '/profile': typeof ProfileRoute
   '/timeline': typeof TimelineRoute
   '/wellbeing': typeof WellbeingRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/assistant' | '/emergency' | '/family' | '/timeline' | '/wellbeing'
+    | '/'
+    | '/assistant'
+    | '/emergency'
+    | '/family'
+    | '/medicine'
+    | '/profile'
+    | '/timeline'
+    | '/wellbeing'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/assistant' | '/emergency' | '/family' | '/timeline' | '/wellbeing'
+  to:
+    | '/'
+    | '/assistant'
+    | '/emergency'
+    | '/family'
+    | '/medicine'
+    | '/profile'
+    | '/timeline'
+    | '/wellbeing'
   id:
     | '__root__'
     | '/'
     | '/assistant'
     | '/emergency'
     | '/family'
+    | '/medicine'
+    | '/profile'
     | '/timeline'
     | '/wellbeing'
   fileRoutesById: FileRoutesById
@@ -93,6 +128,8 @@ export interface RootRouteChildren {
   AssistantRoute: typeof AssistantRoute
   EmergencyRoute: typeof EmergencyRoute
   FamilyRoute: typeof FamilyRoute
+  MedicineRoute: typeof MedicineRoute
+  ProfileRoute: typeof ProfileRoute
   TimelineRoute: typeof TimelineRoute
   WellbeingRoute: typeof WellbeingRoute
 }
@@ -127,6 +164,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FamilyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/medicine': {
+      id: '/medicine'
+      path: '/medicine'
+      fullPath: '/medicine'
+      preLoaderRoute: typeof MedicineRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/timeline': {
       id: '/timeline'
       path: '/timeline'
@@ -149,9 +200,21 @@ const rootRouteChildren: RootRouteChildren = {
   AssistantRoute: AssistantRoute,
   EmergencyRoute: EmergencyRoute,
   FamilyRoute: FamilyRoute,
+  MedicineRoute: MedicineRoute,
+  ProfileRoute: ProfileRoute,
   TimelineRoute: TimelineRoute,
   WellbeingRoute: WellbeingRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

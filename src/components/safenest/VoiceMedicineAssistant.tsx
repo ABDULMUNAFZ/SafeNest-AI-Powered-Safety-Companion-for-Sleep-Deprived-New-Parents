@@ -4,10 +4,10 @@ import { AlertTriangle, Loader2, Mic, MicOff, Phone, ShieldCheck, Volume2 } from
 import { useCallback, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { lookupDosage, parseRequest, type DosageResult, type ParsedRequest } from "@/lib/nesta/dosage";
-import { speak, stopSpeaking, useVoiceInput } from "@/lib/nesta/speech";
-import { triage, type TriageResult } from "@/lib/nesta/triage";
-import { useProfile } from "@/lib/nesta/store";
+import { lookupDosage, parseRequest, type DosageResult, type ParsedRequest } from "@/lib/safenest/dosage";
+import { speak, stopSpeaking, useVoiceInput } from "@/lib/safenest/speech";
+import { triage, type TriageResult } from "@/lib/safenest/triage";
+import { useProfile } from "@/lib/safenest/store";
 
 const EXAMPLES = [
   "My baby is 4 months old, weighs 6 kg and has a fever. How much paracetamol?",
