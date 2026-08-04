@@ -287,7 +287,12 @@ export function useCareLogs() {
     [update, value]
   );
 
-  return { logs: value, addLog, deleteLog, hydrated };
+  const lastOf = useCallback(
+    (kind: LogKind) => value.find((l) => l.kind === kind),
+    [value]
+  );
+
+  return { logs: value, addLog, deleteLog, lastOf, hydrated };
 }
 
 // 2. MOOD LOGS HOOK
