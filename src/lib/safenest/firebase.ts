@@ -4,8 +4,9 @@ import {
   initializeAuth, 
   browserLocalPersistence, 
   browserSessionPersistence, 
-  indexedDBLocalPersistence, 
-  GoogleAuthProvider 
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut as firebaseSignOut
 } from "firebase/auth";
 
 // Firebase Config from environment variables
@@ -22,6 +23,8 @@ if (typeof window !== "undefined") {
   console.log("[SafeNest Auth debug] Loaded API Key:", firebaseConfig.apiKey);
   console.log("[SafeNest Auth debug] isFirebaseConfigured:", Boolean(firebaseConfig.apiKey && firebaseConfig.authDomain));
 }
+
+
 
 // Check if Firebase config is fully provided
 export const isFirebaseConfigured = Boolean(
@@ -50,3 +53,17 @@ if (app) {
 
 export const auth = initializedAuth;
 export const googleProvider = app ? new GoogleAuthProvider() : null;
+
+// Auth helper functions executed inside the same compiled chunk to prevent argument errors
+export async function loginWithGoogle() {
+  if (!auth || !googleProvider) {
+    throw new Error("Firebase Auth is not configured.");
+  }
+  return signInWithPopup(auth, googleProvider);
+}
+
+export async function logoutUser() {
+  if (!auth) return;
+  return firebaseSignOut(auth);
+}
+

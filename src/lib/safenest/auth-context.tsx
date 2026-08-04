@@ -1,12 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { 
-  signInWithPopup, 
-  signOut as firebaseSignOut, 
   onAuthStateChanged, 
   User 
 } from "firebase/auth";
 
-import { auth, googleProvider, isFirebaseConfigured } from "./firebase";
+import { auth, googleProvider, isFirebaseConfigured, loginWithGoogle, logoutUser } from "./firebase";
 import { supabase, isSupabaseConfigured } from "./supabase";
 
 export type AuthUser = {
@@ -122,13 +120,9 @@ export const SafeNestAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Sign In with Google
   const signInWithGoogle = async () => {
     setLoading(true);
-    if (typeof window !== "undefined") {
-      console.log("[SafeNest debug signin] auth:", auth);
-      console.log("[SafeNest debug signin] googleProvider:", googleProvider);
-    }
-    if (!isDemoMode && auth && googleProvider) {
+    if (!isDemoMode) {
       try {
-        await signInWithPopup(auth, googleProvider);
+        await loginWithGoogle();
       } catch (err) {
         console.error("Firebase Google Auth Error:", err);
         setLoading(false);
@@ -156,9 +150,9 @@ export const SafeNestAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Sign Out
   const signOut = async () => {
     setLoading(true);
-    if (!isDemoMode && auth) {
+    if (!isDemoMode) {
       try {
-        await firebaseSignOut(auth);
+        await logoutUser();
       } catch (err) {
         console.error("Sign Out Error:", err);
       }
