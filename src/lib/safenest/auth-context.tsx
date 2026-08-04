@@ -175,6 +175,16 @@ export const SafeNestAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
+  // Helper to wrap a promise in a timeout
+  const withTimeout = (promise: Promise<void>, timeoutMs: number, errorMessage: string): Promise<void> => {
+    return Promise.race([
+      promise,
+      new Promise<void>((_, reject) =>
+        setTimeout(() => reject(new Error(errorMessage)), timeoutMs)
+      )
+    ]);
+  };
+
   // Submit onboarding details and seed historical logs
   const submitOnboarding = async (
     parentData: {
@@ -203,36 +213,45 @@ export const SafeNestAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     if (!isDemoMode && db) {
       try {
-        // 1. Save Parent Profile in Firestore
-        await setDoc(doc(db, "profiles", user.uid), {
-          id: user.uid,
-          parent_name: parentData.parentName,
-          partner_name: parentData.partnerName,
-          partner_phone: parentData.partnerPhone,
-          emergency_number: parentData.emergencyNumber,
-          share_with_partner: parentData.shareWithPartner,
-          updated_at: new Date().toISOString(),
-        });
+        const executeOnboarding = async () => {
+          // 1. Save Parent Profile in Firestore
+          await setDoc(doc(db, "profiles", user.uid), {
+            id: user.uid,
+            parent_name: parentData.parentName,
+            partner_name: parentData.partnerName,
+            partner_phone: parentData.partnerPhone,
+            emergency_number: parentData.emergencyNumber,
+            share_with_partner: parentData.shareWithPartner,
+            updated_at: new Date().toISOString(),
+          });
 
-        // 2. Save Baby Profile in Firestore
-        await setDoc(doc(db, "babies", user.uid), {
-          parent_id: user.uid,
-          baby_name: babyData.babyName,
-          birth_date: babyData.birthDate,
-          age_months: babyData.ageMonths,
-          weight_kg: babyData.weightKg,
-          height_cm: babyData.heightCm,
-          blood_group: babyData.bloodGroup,
-          allergies: babyData.allergies,
-          pediatrician: babyData.pediatrician,
-          pediatrician_phone: babyData.pediatricianPhone,
-          hospital_name: babyData.hospitalName,
-          insurance_name: babyData.insuranceName,
-          insurance_policy: babyData.insurancePolicy,
-        });
+          // 2. Save Baby Profile in Firestore
+          await setDoc(doc(db, "babies", user.uid), {
+            parent_id: user.uid,
+            baby_name: babyData.babyName,
+            birth_date: babyData.birthDate,
+            age_months: babyData.ageMonths,
+            weight_kg: babyData.weightKg,
+            height_cm: babyData.heightCm,
+            blood_group: babyData.bloodGroup,
+            allergies: babyData.allergies,
+            pediatrician: babyData.pediatrician,
+            pediatrician_phone: babyData.pediatricianPhone,
+            hospital_name: babyData.hospitalName,
+            insurance_name: babyData.insuranceName,
+            insurance_policy: babyData.insurancePolicy,
+          });
 
-        // 3. Seed historical logs (Last 3 days of records)
-        await seedFirestoreLogs(user.uid, babyData.babyName);
+          // 3. Seed historical logs (Last 3 days of records)
+          await seedFirestoreLogs(user.uid, babyData.babyName);
+        };
+
+        // Wrap the entire onboarding transaction in a 10-second timeout to prevent infinite UI loading state
+        await withTimeout(
+          executeOnboarding(),
+          10000,
+          "Database connection timed out. Please check if you have enabled Firestore Database in your Firebase Console and set its rules to test mode."
+        );
 
         setOnboardingComplete(true);
       } catch (err) {
@@ -257,7 +276,7 @@ export const SafeNestAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
-  // Seeding engine for Firestore remote database
+  // Seeding engine for Firestore remote database with unique prefixed document IDs
   const seedFirestoreLogs = async (uid: string, babyName: string) => {
     if (!db) return;
     const makeTime = (hoursAgo: number) => Date.now() - hoursAgo * 3600000;
@@ -281,7 +300,8 @@ export const SafeNestAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       { id: "c_l14", parent_id: uid, kind: "fed", at: makeTime(52), note: "100 ml formula feed" },
     ];
     careLogs.forEach((log) => {
-      batch.set(doc(db, "care_logs", log.id), log);
+      const logId = `${uid}_${log.id}`;
+      batch.set(doc(db, "care_logs", logId), { ...log, id: logId });
     });
 
     // 2. Mood Logs
@@ -291,7 +311,8 @@ export const SafeNestAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       { id: "m_l3", parent_id: uid, score: 4, stress_score: 4, energy_score: 5, note: "Partner took shifts, felt better.", at: makeTime(52) },
     ];
     moodLogs.forEach((log) => {
-      batch.set(doc(db, "mood_logs", log.id), log);
+      const logId = `${uid}_${log.id}`;
+      batch.set(doc(db, "mood_logs", logId), { ...log, id: logId });
     });
 
     // 3. Growth Records
@@ -301,7 +322,8 @@ export const SafeNestAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       { id: "g_r3", baby_id: uid, age_months: 4, weight_kg: 6.2, height_cm: 62.5, at: makeTime(1) },
     ];
     growthRecords.forEach((log) => {
-      batch.set(doc(db, "growth_records", log.id), log);
+      const logId = `${uid}_${log.id}`;
+      batch.set(doc(db, "growth_records", logId), { ...log, id: logId });
     });
 
     // 4. Vaccinations Checklist
@@ -313,7 +335,8 @@ export const SafeNestAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       { baby_id: uid, id: "v5", name: "DTaP - Dose 3", disease: "Diphtheria, Tetanus, Pertussis", due_age_months: 6, status: "scheduled", notes: "Due at 6 months." },
     ];
     vaccinations.forEach((log) => {
-      batch.set(doc(db, "vaccinations", log.id), log);
+      const logId = `${uid}_${log.id}`;
+      batch.set(doc(db, "vaccinations", logId), { ...log, id: logId });
     });
 
     await batch.commit();
