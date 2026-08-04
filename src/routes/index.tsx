@@ -1,24 +1,38 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
+import { AppShell } from "@/components/nesta/AppShell";
+import { NightDashboard } from "@/components/nesta/NightDashboard";
+import { QuickLog } from "@/components/nesta/QuickLog";
+import { VoiceMedicineAssistant } from "@/components/nesta/VoiceMedicineAssistant";
+
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "NESTA AI — Postpartum Safety Companion for New Parents" },
+      {
+        name: "description",
+        content:
+          "Voice-first postpartum companion: validated infant medicine doses, one-tap baby logging, mood check-ins and instant emergency guidance.",
+      },
+      { property: "og:title", content: "NESTA AI — Postpartum Safety Companion" },
+      {
+        property: "og:description",
+        content:
+          "Ask out loud, get validated infant dosage guidance, log care in one tap, and reach emergency help fast.",
+      },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <AppShell>
+      <div className="space-y-5">
+        <VoiceMedicineAssistant />
+        <QuickLog />
+        <NightDashboard />
+      </div>
+    </AppShell>
   );
 }
