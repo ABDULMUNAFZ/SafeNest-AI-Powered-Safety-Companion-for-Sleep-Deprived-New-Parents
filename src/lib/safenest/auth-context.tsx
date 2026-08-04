@@ -1,10 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { 
-  onAuthStateChanged, 
-  User 
-} from "firebase/auth";
 
-import { auth, googleProvider, isFirebaseConfigured, loginWithGoogle, logoutUser } from "./firebase";
+import { 
+  auth, 
+  googleProvider, 
+  isFirebaseConfigured, 
+  loginWithGoogle, 
+  logoutUser,
+  onAuthStateChanged,
+  type User 
+} from "./firebase";
 import { supabase, isSupabaseConfigured } from "./supabase";
 
 export type AuthUser = {

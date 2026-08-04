@@ -6,8 +6,12 @@ import {
   browserSessionPersistence, 
   GoogleAuthProvider,
   signInWithPopup,
-  signOut as firebaseSignOut
+  signOut as firebaseSignOut,
+  onAuthStateChanged,
+  type User
 } from "firebase/auth";
+
+export { onAuthStateChanged, type User };
 
 // Firebase Config from environment variables
 const firebaseConfig = {
