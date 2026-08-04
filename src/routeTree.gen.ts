@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AssistantRouteImport } from './routes/assistant'
+import { Route as EmergencyRouteImport } from './routes/emergency'
 import { Route as TimelineRouteImport } from './routes/timeline'
 import { Route as WellbeingRouteImport } from './routes/wellbeing'
 
@@ -22,6 +23,11 @@ const IndexRoute = IndexRouteImport.update({
 const AssistantRoute = AssistantRouteImport.update({
   id: '/assistant',
   path: '/assistant',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmergencyRoute = EmergencyRouteImport.update({
+  id: '/emergency',
+  path: '/emergency',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TimelineRoute = TimelineRouteImport.update({
@@ -38,12 +44,14 @@ const WellbeingRoute = WellbeingRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/assistant': typeof AssistantRoute
+  '/emergency': typeof EmergencyRoute
   '/timeline': typeof TimelineRoute
   '/wellbeing': typeof WellbeingRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/assistant': typeof AssistantRoute
+  '/emergency': typeof EmergencyRoute
   '/timeline': typeof TimelineRoute
   '/wellbeing': typeof WellbeingRoute
 }
@@ -51,20 +59,23 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/assistant': typeof AssistantRoute
+  '/emergency': typeof EmergencyRoute
   '/timeline': typeof TimelineRoute
   '/wellbeing': typeof WellbeingRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/assistant' | '/timeline' | '/wellbeing'
+  fullPaths: '/' | '/assistant' | '/emergency' | '/timeline' | '/wellbeing'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/assistant' | '/timeline' | '/wellbeing'
-  id: '__root__' | '/' | '/assistant' | '/timeline' | '/wellbeing'
+  to: '/' | '/assistant' | '/emergency' | '/timeline' | '/wellbeing'
+  id:
+    '__root__' | '/' | '/assistant' | '/emergency' | '/timeline' | '/wellbeing'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AssistantRoute: typeof AssistantRoute
+  EmergencyRoute: typeof EmergencyRoute
   TimelineRoute: typeof TimelineRoute
   WellbeingRoute: typeof WellbeingRoute
 }
@@ -83,6 +94,13 @@ declare module '@tanstack/react-router' {
       path: '/assistant'
       fullPath: '/assistant'
       preLoaderRoute: typeof AssistantRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/emergency': {
+      id: '/emergency'
+      path: '/emergency'
+      fullPath: '/emergency'
+      preLoaderRoute: typeof EmergencyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/timeline': {
@@ -105,6 +123,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AssistantRoute: AssistantRoute,
+  EmergencyRoute: EmergencyRoute,
   TimelineRoute: TimelineRoute,
   WellbeingRoute: WellbeingRoute,
 }
